@@ -11,11 +11,11 @@ const Sidebar = ({ isOpen }) => {
             <Link to='/'>Dashboard</Link>
           </li>
           <li className="flex items-center space-x-2 hover:bg-gray-200 p-3 rounded bg-white text-black font-semibold shadow-lg">
-            <i className="fas fa-users"></i>
+            <i className="fas fa-user"></i>
             <Link to='/profile-management'>Profile</Link>
           </li>
           <li className="flex items-center space-x-2 hover:bg-gray-200 p-3 rounded bg-white text-black font-semibold shadow-lg">
-            <i className="fas fa-chalkboard"></i>
+            <i className="fas fa-chalkboard-teacher"></i>
             <Link to='/courses-management'>Courses</Link>
           </li>
           <li className="flex items-center space-x-2 hover:bg-gray-200 p-3 rounded bg-white text-black font-semibold shadow-lg">

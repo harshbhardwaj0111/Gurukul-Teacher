@@ -9,6 +9,23 @@ import NotificationManagement from './Pages/NotificationManagement';
 import SalaryManagement from './Pages/SalaryManagement';
 import ProfileManagement from './Pages/ProfileManagement';
 import CoursesManagement from './Pages/CoursesManagement';
+import ViewProfile from './Profile/ViewProfile';
+import Assignments from './Courses/Assignments';
+import CourseMaterial from './Courses/CourseMaterial';
+import Homework from './Courses/Homework';
+import StudentAttendance from './Courses/StudentAttendance';
+import TestSchedule from './Courses/TestSchedule';
+import OldPaper from './Examination/OldPaper';
+import PrepareResult from './Examination/PrepareResult';
+import Result from './Examination/Result';
+import FeeReport from './Fee/FeeReport';
+import AddNotification from './Notification/AddNotification';
+import StudentAchievement from './Notification/StudentAchievement';
+import ViewNotification from './Notification/ViewNotification';
+import Attendance from './Profile/Attendance';
+import Schedule from './Profile/Schedule';
+import Ledger from './Salary/Ledger';
+import ViewSalary from './Salary/ViewSalary';
 
 const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -38,6 +55,29 @@ const Layout = () => {
               <Route path="/fee-management" element={<FeeManagement />} />
               <Route path="/notification-management" element={<NotificationManagement />} />
               <Route path="/salary-management" element={<SalaryManagement />} />
+              {/* Profile */}
+              <Route path="/view-profile" element={<ViewProfile />} />
+              <Route path='/attendance' element={<Attendance />} />
+              <Route path='/schedule' element={<Schedule />} />
+              {/* Courses */}
+              <Route path="/assignments" element={<Assignments />} />
+              <Route path="/course-materials" element={<CourseMaterial />} />
+              <Route path="/homework" element={<Homework />} />
+              <Route path="/student-attendance" element={<StudentAttendance />} />
+              <Route path="/test-schedule" element={<TestSchedule />} />
+              {/* Examination */}
+              <Route path="/old-paper" element={<OldPaper />} />
+              <Route path="/prepare-result" element={<PrepareResult />} />
+              <Route path="/result" element={<Result />} />
+              {/* Salary */}
+              <Route path="/view-ledger" element={<Ledger />} />
+              <Route path="/view-salary" element={<ViewSalary />} />
+              {/* Fee */}
+              <Route path="/fee-report" element={<FeeReport />} />
+              {/* Notification */}
+              <Route path="/add-notification" element={<AddNotification />} />
+              <Route path="/student-achievement" element={<StudentAchievement />} />
+              <Route path="/view-notification" element={<ViewNotification />} />
             </Routes>
           </div>
         </div>
