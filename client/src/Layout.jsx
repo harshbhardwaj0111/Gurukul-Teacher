@@ -57,8 +57,8 @@ const Layout = () => {
               <Route path="/salary-management" element={<SalaryManagement />} />
               {/* Profile */}
               <Route path="/view-profile" element={<ViewProfile />} />
-              <Route path='/attendance' element={<Attendance />} />
-              <Route path='/schedule' element={<Schedule />} />
+              <Route path='/view-attendance' element={<Attendance />} />
+              <Route path='/my-schedule' element={<Schedule />} />
               {/* Courses */}
               <Route path="/assignments" element={<Assignments />} />
               <Route path="/course-materials" element={<CourseMaterial />} />
@@ -66,9 +66,9 @@ const Layout = () => {
               <Route path="/student-attendance" element={<StudentAttendance />} />
               <Route path="/test-schedule" element={<TestSchedule />} />
               {/* Examination */}
-              <Route path="/old-paper" element={<OldPaper />} />
+              <Route path="/old-papers" element={<OldPaper />} />
               <Route path="/prepare-result" element={<PrepareResult />} />
-              <Route path="/result" element={<Result />} />
+              <Route path="/submit-result" element={<Result />} />
               {/* Salary */}
               <Route path="/view-ledger" element={<Ledger />} />
               <Route path="/view-salary" element={<ViewSalary />} />
@@ -76,7 +76,7 @@ const Layout = () => {
               <Route path="/fee-report" element={<FeeReport />} />
               {/* Notification */}
               <Route path="/add-notification" element={<AddNotification />} />
-              <Route path="/student-achievement" element={<StudentAchievement />} />
+              <Route path="/student-achievements" element={<StudentAchievement />} />
               <Route path="/view-notification" element={<ViewNotification />} />
             </Routes>
           </div>
