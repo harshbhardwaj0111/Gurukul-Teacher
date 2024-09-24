@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect , useRef } from "react";
 import axios from "axios";
 
-const TeacherAttendance = () => {
+const Attendance = () => {
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [selectedDate, setSelectedDate] = useState(null);
   const [attendanceData, setAttendanceData] = useState([]);
   const [selectedAttendance, setSelectedAttendance] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const modalRef = useRef(null); // Reference for the modal
 
   const [totalPresent, setTotalPresent] = useState(0);
   const [totalAbsent, setTotalAbsent] = useState(0);
@@ -36,9 +37,11 @@ const TeacherAttendance = () => {
 
     attendanceRecords.forEach(record => {
       record.teachers.forEach(teacher => {
-        if (teacher.status === "Present") presentCount++;
-        else if (teacher.status === "Absent") absentCount++;
-        else if (teacher.status === "onLeave") onLeaveCount++;
+        if (teacher.teacherId === teacherId) {  // Ensure it’s the correct teacher
+          if (teacher.status === "Present") presentCount++;
+          else if (teacher.status === "Absent") absentCount++;
+          else if (teacher.status === "onLeave") onLeaveCount++;
+        }
       });
     });
 
@@ -46,6 +49,22 @@ const TeacherAttendance = () => {
     setTotalAbsent(absentCount);
     setTotalOnLeave(onLeaveCount);
   };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (modalRef.current && !modalRef.current.contains(event.target)) {
+        setShowModal(false);
+      }
+    };
+
+    if (showModal) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showModal]);
 
   const generateCalendarDays = () => {
     const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
@@ -80,12 +99,15 @@ const TeacherAttendance = () => {
           else if (teacherAttendance.status === "onLeave") attendanceStatusClass = "bg-yellow-400 text-white";
           else if (teacherAttendance.status === "Late") attendanceStatusClass = "bg-orange-500 text-white";
         }
+      } else if (isToday) {
+        // If it's today but no attendance record, show as gray
+        attendanceStatusClass = "bg-gray-500 text-white";
       }
 
       monthDays.push(
         <div
           key={day}
-          className={`text-center py-2 border cursor-pointer rounded-lg transition duration-300 ease-in-out hover:bg-gray-200 hover:text-black ${attendanceStatusClass} ${isToday ? "bg-sky-400 text-white" : ""}`}
+          className={`text-center py-2 border cursor-pointer rounded-lg transition duration-300 ease-in-out hover:bg-gray-200 hover:text-black ${attendanceStatusClass}`}
           onClick={() => handleDateClick(day)}
         >
           {day}
@@ -169,7 +191,7 @@ const TeacherAttendance = () => {
           <div className="text-red-500 font-semibold">
             Absent: {totalAbsent}
           </div>
-          <div className="text-orange-500 font-semibold">
+          <div className="text-yellow-400 font-semibold">
             On Leave: {totalOnLeave}
           </div>
         </div>
@@ -180,47 +202,60 @@ const TeacherAttendance = () => {
         <h3 className="text-lg font-semibold mb-2">Legend:</h3>
         <div className="grid grid-cols-2 gap-4">
           <div className="flex items-center mb-2">
-            <div className="w-6 h-6 bg-green-600 rounded-full mr-2"></div>
-            Present
+            <div className="w-4 h-4 bg-green-600 mr-2 rounded-full"></div>
+            <span>Present</span>
           </div>
           <div className="flex items-center mb-2">
-            <div className="w-6 h-6 bg-red-500 rounded-full mr-2"></div>
-            Absent
+            <div className="w-4 h-4 bg-red-500 mr-2 rounded-full"></div>
+            <span>Absent</span>
           </div>
           <div className="flex items-center mb-2">
-            <div className="w-6 h-6 bg-orange-500 rounded-full mr-2"></div>
-            Late
+            <div className="w-4 h-4 bg-yellow-400 mr-2 rounded-full"></div>
+            <span>On Leave</span>
           </div>
           <div className="flex items-center mb-2">
-            <div className="w-6 h-6 bg-yellow-400 rounded-full mr-2"></div>
-            On Leave
+            <div className="w-4 h-4 bg-orange-500 mr-2 rounded-full"></div>
+            <span>Late</span>
           </div>
         </div>
-      </div>
 
-      {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg p-4 w-11/12 sm:w-1/3">
-            <h3 className="text-lg font-semibold mb-2">
-              Attendance on {selectedDate}
-            </h3>
-            {selectedAttendance ? (
-              <div>
-                <p>Status: {selectedAttendance.status}</p>
-                {selectedAttendance.remark && <p>Remark: {selectedAttendance.remark}</p>}
-                <button onClick={handleCloseModal} className="mt-4 px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300 transition duration-300">
-                  Close
-                </button>
+        {showModal && selectedAttendance && (
+          <div className="modal fixed inset-0 flex items-center justify-center z-50">
+            <div className="modal-overlay absolute inset-0 bg-black opacity-50"></div>
+            <div ref={modalRef} className="modal-container bg-white w-11/12 md:max-w-md mx-auto rounded shadow-lg z-50 overflow-y-auto">
+              <div className="modal-content py-4 text-left px-6">
+                <div className="flex justify-between items-center pb-3">
+                  <p className="text-2xl font-bold">Attendance Details</p>
+                  <button onClick={handleCloseModal} className="modal-close px-3 py-1 rounded-full bg-gray-200 hover:bg-gray-300 focus:outline-none focus:ring">✕</button>
+                </div>
+                <div className="text-xl font-semibold mb-4">Date: {selectedDate}</div>
+                <div className="text-lg">
+                  <span className="font-bold">Status: </span>
+                  <span className={`${selectedAttendance.status === "Present"
+                      ? "text-green-600"
+                      : selectedAttendance.status === "Absent"
+                        ? "text-red-500"
+                        : selectedAttendance.status === "Late"
+                          ? "text-orange-500"
+                          : selectedAttendance.status === "onLeave"
+                            ? "text-yellow-400"
+                            : ""
+                    }`}>
+                    {selectedAttendance.status}
+                  </span>
+                </div>
+                {selectedAttendance.remark && (
+                  <div className="text-lg mt-2">
+                    <span className="font-bold">Remark: </span> {selectedAttendance.remark}
+                  </div>
+                )}
               </div>
-            ) : (
-              <p>No attendance record found.</p>
-            )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
 
-export default TeacherAttendance;
+export default Attendance;

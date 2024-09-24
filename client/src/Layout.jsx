@@ -83,7 +83,7 @@ const Layout = () => {
         </div>
 
         {/* Footer - Hidden on small screens */}
-        <div className="footer hidden md:block">
+        <div className="footer">
           <Footer />
         </div>
       </div>
