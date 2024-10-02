@@ -149,6 +149,19 @@ function TestSchedule() {
     }
   };
 
+  const getFilteredTestSchedules = () => {
+    if (!teacher) return testSchedules; // If teacher data isn't available yet, return all materials
+
+    const teacherClasses = teacher.classYouTeach[0]?.split(',') || [];
+    const teacherSubjects = teacher.subjectYouTeach[0]?.split(',') || [];
+
+    return testSchedules.filter(material => 
+      teacherClasses.includes(material.class) && 
+      teacherSubjects.includes(material.subject)
+    );
+  };
+
+
   const clearForm = () => {
     setForm({
       testName: '',
@@ -352,7 +365,7 @@ function TestSchedule() {
             </tr>
           </thead>
           <tbody className='bg-gray-50'>
-            {testSchedules.map((schedule, index) => (
+            {getFilteredTestSchedules().map((schedule, index) => (
               <tr key={schedule._id} className='hover:bg-gray-100'>
                 <td className="px-4 py-2 border-b border-gray-300">{index + 1}</td>
                 <td className="px-4 py-2 border-b border-gray-300">{schedule.testName}</td>
@@ -386,7 +399,7 @@ function TestSchedule() {
 
       {/* Card Format for Mobile Screens */}
       <div className="block md:hidden">
-        {testSchedules.map((schedule, index) => (
+        {getFilteredTestSchedules().map((schedule, index) => (
           <div key={schedule._id} className="bg-white border shadow-md rounded p-4 mb-4">
             <h3 className="font-bold"><i className="fas fa-pen text-blue-600 mr-2"></i>{schedule.testName}</h3>
             <p><i className="fas fa-chalkboard-teacher text-teal-500 mr-2"></i>{schedule.class} ({schedule.section})</p>

@@ -157,6 +157,18 @@ function CourseMaterialPage() {
     }
   };
 
+  const getFilteredCourseMaterials = () => {
+    if (!teacher) return courseMaterials; // If teacher data isn't available yet, return all materials
+
+    const teacherClasses = teacher.classYouTeach[0]?.split(',') || [];
+    const teacherSubjects = teacher.subjectYouTeach[0]?.split(',') || [];
+
+    return courseMaterials.filter(material => 
+      teacherClasses.includes(material.className) && 
+      teacherSubjects.includes(material.subjectName)
+    );
+  };
+
   const clearForm = () => {
     setForm({
       title: '',
@@ -301,7 +313,7 @@ function CourseMaterialPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {courseMaterials.map((material, index) => (
+            {getFilteredCourseMaterials().map((material, index) => (
               <tr key={material._id}>
                 <td className="px-4 py-2">{index + 1}</td>
                 <td className="px-4 py-2">{material.className} ({material.sectionName})</td>
@@ -336,7 +348,7 @@ function CourseMaterialPage() {
 
       {/* Responsive Cards for Mobile View */}
       <div className="grid grid-cols-1 md:hidden gap-4">
-        {courseMaterials.map((material) => (
+        {getFilteredCourseMaterials().map((material) => (
           <div key={material._id} className="border rounded p-4 bg-white shadow">
             <h3 className="font-bold"><i className="fas fa-pen text-yellow-900 mr-2"></i>{material.title}</h3>
             <p><i className="fas fa-chalkboard-teacher text-teal-500 mr-2"></i>{material.className} ({material.sectionName})</p>
