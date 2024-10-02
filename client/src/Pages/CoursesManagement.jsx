@@ -49,7 +49,7 @@ const Courses = () => {
                 </Link>
 
                 {/* Assignments */}
-                <Link to="/student-assignments" className="block">
+                <Link to="/assignments" className="block">
                   <div className="bg-white shadow-lg rounded-xl p-5 hover:shadow-xl transition duration-300 transform hover:scale-105 flex items-center">
                     <i className="fas fa-tasks text-yellow-600 text-4xl mr-4"></i>
                     <div>
