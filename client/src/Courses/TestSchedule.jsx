@@ -108,8 +108,10 @@ function TestSchedule() {
     try {
       if (editingId) {
         await axios.put(`http://localhost:7000/api/testSchedules/updateTestSchedule/${editingId}`, form);
+        alert("Updated Successfully");
       } else {
         await axios.post('http://localhost:7000/api/testSchedules/createTestSchedule', form);
+        alert("Created Successfully");
       }
       setForm({
         testName: '',
@@ -136,17 +138,36 @@ function TestSchedule() {
   };
 
   const handleDelete = async (id) => {
-    try {
-      await axios.delete(`http://localhost:7000/api/testSchedules/deleteTestSchedule/${id}`);
-      fetchTestSchedules();
-    } catch (error) {
-      console.error('Error deleting test schedule:', error);
+    const confirmDelete = window.confirm("Are you sure you want to delete this course material?");
+    if (confirmDelete) {
+      try {
+        await axios.delete(`http://localhost:7000/api/testSchedules/deleteTestSchedule/${id}`);
+        fetchTestSchedules();
+      } catch (error) {
+        console.error('Error deleting test schedule:', error);
+      }
     }
   };
 
+  const clearForm = () => {
+    setForm({
+      testName: '',
+      subject: '',
+      class: '',
+      section: '',
+      date: '',
+      startTime: '',
+      endTime: '',
+      invigilator: '',
+      roomNumber: '',
+      additionalNotes: ''
+    });
+    setEditingId(null);
+  }
+
   return (
-    <div className="container mx-auto p-2 md:p-4">
-      <h1 className="text-xl md:text-3xl font-bold text-center md:mb-4"><i className="md:hidden fas fa-clipboard-list mr-2"></i>Test Schedule</h1>
+    <div className="container mx-auto md:p-4">
+      <h1 className="text-xl md:text-3xl font-bold text-center md:mb-4"><i className="md:hidden text-blue-400 fas fa-clipboard-list mr-2"></i>Test Schedule</h1>
       <form onSubmit={handleSubmit} className="bg-white p-3 md:p-6 rounded-lg shadow-md mb-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -303,6 +324,14 @@ function TestSchedule() {
         >
           {editingId ? 'Update Test Schedule' : 'Add Test Schedule'}
         </button>
+        {editingId && (
+          <button
+            onClick={clearForm}
+            className="bg-gray-600 text-white py-2 px-4 ml-4 rounded"
+          >
+            Cancel
+          </button>
+        )}
       </form>
 
       <h2 className="text-xl font-bold mb-4">Test Schedules</h2>
@@ -359,24 +388,19 @@ function TestSchedule() {
       <div className="block md:hidden">
         {testSchedules.map((schedule, index) => (
           <div key={schedule._id} className="bg-white border shadow-md rounded p-4 mb-4">
-            <h3 className="font-bold">{schedule.testName}</h3>
-            <p>Class: {schedule.class} ({schedule.section})</p>
-            <p>Subject: {schedule.subject}</p>
-            <p>Date: {new Date(schedule.date).toLocaleDateString()}</p>
-            <p>Timing: {schedule.startTime} - {schedule.endTime}</p>
-            <p>Invigilator: {schedule.invigilator}</p>
-            <p>Room: {schedule.roomNumber}</p>
-            <div className="flex flex-col sm:flex-row justify-center gap-2">
-              <button
-                className="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-400"
-                onClick={() => handleEdit(schedule)}
-              >
+            <h3 className="font-bold"><i className="fas fa-pen text-blue-600 mr-2"></i>{schedule.testName}</h3>
+            <p><i className="fas fa-chalkboard-teacher text-teal-500 mr-2"></i>{schedule.class} ({schedule.section})</p>
+            <p><i className="fas fa-book text-purple-500 mr-2"></i>{schedule.subject}</p>
+            <p><i className="fas fa-calendar-alt text-cyan-600 mr-2"></i>{new Date(schedule.date).toLocaleDateString()}</p>
+            <p><i className="fas fa-clock text-orange-500 mr-2"></i>{schedule.startTime} - {schedule.endTime}</p>
+            <p><i className="fas fa-user-check text-blue-500 mr-2"></i>
+            {schedule.invigilator}</p>
+            <p><i className="fas fa-door-open text-yellow-800 mr-2"></i>{schedule.roomNumber}</p>
+            <div className="flex justify-end mt-2 gap-4">
+              <button onClick={() => handleEdit(schedule)} className="text-yellow-500 hover:underline">
                 <i className="fas fa-edit mr-1"></i>Edit
               </button>
-              <button
-                className="bg-red-600 text-white px-2 py-1 rounded hover:bg-red-500"
-                onClick={() => handleDelete(schedule._id)}
-              >
+              <button onClick={() => handleDelete(schedule._id)} className="text-red-500 hover:underline">
                 <i className="fas fa-trash mr-1"></i>Delete
               </button>
             </div>
