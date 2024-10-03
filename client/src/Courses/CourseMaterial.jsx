@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-function CourseMaterialPage() {
+function CourseMaterial() {
   const [courseMaterials, setCourseMaterials] = useState([]);
   const [form, setForm] = useState({
     title: '',
@@ -372,4 +372,4 @@ function CourseMaterialPage() {
   );
 }
 
-export default CourseMaterialPage;
+export default CourseMaterial;

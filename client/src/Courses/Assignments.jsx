@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-function AssignmentsPage() {
+function Assignments() {
   const [assignments, setAssignments] = useState([]);
   const [form, setForm] = useState({
     assignmentTitle: '',
@@ -399,4 +399,4 @@ function AssignmentsPage() {
   );
 }
 
-export default AssignmentsPage;
+export default Assignments;
