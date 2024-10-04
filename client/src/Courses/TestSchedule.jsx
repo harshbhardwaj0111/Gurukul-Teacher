@@ -138,7 +138,7 @@ function TestSchedule() {
   };
 
   const handleDelete = async (id) => {
-    const confirmDelete = window.confirm("Are you sure you want to delete this course material?");
+    const confirmDelete = window.confirm("Are you sure you want to delete this Test Schedule?");
     if (confirmDelete) {
       try {
         await axios.delete(`http://localhost:7000/api/testSchedules/deleteTestSchedule/${id}`);

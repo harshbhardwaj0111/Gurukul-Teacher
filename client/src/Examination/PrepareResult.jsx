@@ -320,7 +320,7 @@ const PrepareResult = () => { // Class and Section are passed as props
             <div>
               <button
                 onClick={() => handleEdit(result._id)}
-                className="text-green-500 hover:underline"
+                className="text-yellow-500 hover:underline"
               >
                 Edit
               </button>
