@@ -26,6 +26,7 @@ import Attendance from './Profile/Attendance';
 import Schedule from './Profile/Schedule';
 import Ledger from './Salary/Ledger';
 import ViewSalary from './Salary/ViewSalary';
+import BottomNav from './Components/BottomNav';
 
 const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -82,9 +83,13 @@ const Layout = () => {
           </div>
         </div>
 
-        {/* Footer - Hidden on small screens */}
-        <div className="footer">
+        <div className="footer hidden md:block">
           <Footer />
+        </div>
+
+        {/* Bottom Navigation - Only on small screens */}
+        <div className="md:hidden fixed bottom-0 w-full">
+          <BottomNav />
         </div>
       </div>
     </Router>

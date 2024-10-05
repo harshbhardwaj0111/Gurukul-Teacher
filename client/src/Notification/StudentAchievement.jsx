@@ -135,7 +135,7 @@ const StudentAchievement = () => {
       <div className="bg-white p-2 md:p-6 w-full max-w-full">
         <h2 className="text-xl md:text-3xl font-bold text-center md:mb-4">
           <i className="md:hidden text-yellow-400 fas fa-trophy mr-2"></i>
-          {eventData.eventName ? `Edit Achievement of ${assignedClass} (${assignedSection})` : `Add Student Achievement of ${assignedClass} (${assignedSection})`}
+          {eventData.eventName ? `Add Achievement of ${assignedClass} (${assignedSection})` : `Edit Student Achievement of ${assignedClass} (${assignedSection})`}
         </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
 
