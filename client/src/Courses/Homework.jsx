@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-function HomeworkPage() {
+function Homework() {
   const [homeworkData, setHomeworkData] = useState([]);
   const [form, setForm] = useState({
     className: '',
     sectionName: '',
-    subjectName: '',
+    subject: '',
     homework: '',
   });
   const [editingId, setEditingId] = useState(null);
@@ -108,19 +108,22 @@ function HomeworkPage() {
     const homeworkPayload = {
       className: form.className,
       sectionName: form.sectionName,
-      subjectName: form.subjectName,
-      homework: form.homework,
+      homework: {
+        [form.subject]: form.homework, // Send homework as a map
+      },
     };
 
     try {
       if (editingId) {
+        // If editing, use PUT method
         await axios.put(`http://localhost:7000/api/homework/updateHomework/${editingId}`, homeworkPayload);
         alert("Homework Updated Successfully");
       } else {
-        await axios.post('http://localhost:7000/api/homework/createHomework', homeworkPayload);
+        // Otherwise, submit the new homework
+        await axios.post('http://localhost:7000/api/homework/submitHomeworkForDate', homeworkPayload); // Use the new API
         alert("Homework Created Successfully");
       }
-      setForm({ className: '', sectionName: '', subjectName: '', homework: '' });
+      setForm({ className: '', sectionName: '', subject: '', homework: '' });
       setEditingId(null);
       fetchHomework();
     } catch (error) {
@@ -130,7 +133,12 @@ function HomeworkPage() {
 
   // Handle edit action
   const handleEdit = (homework) => {
-    setForm(homework);
+    setForm({
+      className: homework.className,
+      sectionName: homework.sectionName,
+      subject: Object.keys(homework.homework)[0], // Get the subject name
+      homework: homework.homework[Object.keys(homework.homework)[0]], // Get the corresponding homework
+    });
     setEditingId(homework._id);
   };
 
@@ -156,13 +164,13 @@ function HomeworkPage() {
 
     return homeworkData.filter(homework =>
       teacherClasses.includes(homework.className) &&
-      teacherSubjects.includes(homework.subjectName)
+      teacherSubjects.includes(Object.keys(homework.homework)[0]) // Get the subject name
     );
   };
 
   // Clear the form after submit or edit cancel
   const clearForm = () => {
-    setForm({ className: '', sectionName: '', subjectName: '', homework: ''});
+    setForm({ className: '', sectionName: '', subject: '', homework: '' });
     setEditingId(null);
   };
 
@@ -209,11 +217,11 @@ function HomeworkPage() {
           </div>
 
           <div>
-            <label htmlFor="subjectName" className="block">Subject</label>
+            <label htmlFor="subject" className="block">Subject</label>
             <select
-              id="subjectName"
-              name="subjectName"
-              value={form.subjectName}
+              id="subject"
+              name="subject"
+              value={form.subject}
               onChange={handleInputChange}
               required
               disabled={!form.className || !form.sectionName}
@@ -237,7 +245,6 @@ function HomeworkPage() {
               className="mt-1 p-2 border rounded w-full"
             ></textarea>
           </div>
-
         </div>
 
         <div className="mt-4">
@@ -248,9 +255,9 @@ function HomeworkPage() {
             <button
               type="button"
               onClick={clearForm}
-              className="ml-4 bg-red-600 text-white px-4 py-2 rounded"
+              className="bg-gray-500 text-white px-4 py-2 rounded ml-2"
             >
-              Cancel Edit
+              Cancel
             </button>
           )}
         </div>
@@ -258,32 +265,33 @@ function HomeworkPage() {
 
       {/* Homework List */}
       <div className="mt-8">
-        <h2 className="text-xl font-semibold mb-4">Homework List</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <h2 className="text-xl font-bold mb-4">Homework List</h2>
+        <ul className="list-disc pl-5">
           {getFilteredHomework().map(homework => (
-            <div key={homework._id} className="bg-white p-4 shadow-md rounded-md">
-              <h3 className="font-bold">{homework.subjectName}</h3>
-              <p>{homework.homework}</p>
-              <div className="mt-2">
+            <li key={homework._id} className="flex justify-between items-center mb-2">
+              <div>
+                <span className="font-semibold">{homework.subject}:</span> {homework.homework[homework.subject]}
+              </div>
+              <div>
                 <button
                   onClick={() => handleEdit(homework)}
-                  className="text-blue-600 mr-4"
+                  className="bg-yellow-500 text-white px-2 py-1 rounded mr-2"
                 >
                   Edit
                 </button>
                 <button
                   onClick={() => handleDelete(homework._id)}
-                  className="text-red-600"
+                  className="bg-red-500 text-white px-2 py-1 rounded"
                 >
                   Delete
                 </button>
               </div>
-            </div>
+            </li>
           ))}
-        </div>
+        </ul>
       </div>
     </div>
   );
 }
 
-export default HomeworkPage;
+export default Homework;
