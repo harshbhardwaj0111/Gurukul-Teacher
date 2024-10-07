@@ -16,6 +16,8 @@ const PrepareResult = () => { // Class and Section are passed as props
   const [teacherClassIncharge, setTeacherClassIncharge] = useState('');
   const [assignedClass, setAssignedClass] = useState('');
   const [assignedSection, setAssignedSection] = useState('');
+  const [results, setResults] = useState([]); // To hold fetched results
+
   useEffect(() => {
     const fetchTeacherInfo = async () => {
       try {
@@ -23,7 +25,6 @@ const PrepareResult = () => { // Class and Section are passed as props
         const teacherData = response.data;
 
         if (teacherData.classIncharge) {
-          // Example: "10th (Rose)" => Class: "10th", Section: "Rose"
           const [className, sectionName] = teacherData.classIncharge.split(' (');
           setAssignedClass(className);
           setAssignedSection(sectionName.replace(')', ''));
@@ -44,17 +45,18 @@ const PrepareResult = () => { // Class and Section are passed as props
     axios.get(`http://localhost:7000/api/exams/getExamByClass/${assignedClass}`)
       .then(response => setExams(response.data))
       .catch(error => console.error('Error fetching exams:', error));
-      
+
     // Fetch students for the specified class and section
     axios.get('http://localhost:7000/api/students/getStudents')
       .then(response => {
         const filteredStudents = response.data.filter(student =>
           student.class === assignedClass && student.section === assignedSection
         );
+        console.log(filteredStudents)
         setStudents(filteredStudents);
       })
       .catch(error => console.error('Error fetching students:', error));
-      
+
     // Fetch subjects for the specified class
     axios.get(`http://localhost:7000/api/subjects/${assignedClass}/getSubjectsByClassName`)
       .then(response => {
@@ -66,13 +68,54 @@ const PrepareResult = () => { // Class and Section are passed as props
         setSubjectMarks(marks);
       })
       .catch(error => console.error('Error fetching subjects:', error));
-      
+
     // Fetch existing exam results
     axios.get('http://localhost:7000/api/examresults/getAllExamResults')
       .then(response => setExamResults(response.data))
       .catch(error => console.error('Error fetching exam results:', error));
+
   }, [assignedClass, assignedSection]);
 
+  useEffect(() => {
+    const fetchResults = async () => {
+      try {
+        const response = await axios.get(`http://localhost:7000/api/subjectResults/class/${assignedClass}/section/${assignedSection}`);
+        const allResults = response.data;
+  
+        const filteredResults = allResults.filter(result => result.examName === selectedExam);
+  
+        if (filteredResults.length > 0) {
+          const firstResult = filteredResults[0]; // Ensure a result exists
+  
+          setSubjectMarks(firstResult?.subjects.reduce((acc, subject) => ({
+            ...acc,
+            [subject.subjectName]: subject.totalMarks,
+          }), {}));
+  
+          setScores(firstResult?.students.reduce((acc, student) => ({
+            ...acc,
+            [student.studentId]: student.scores.reduce((subAcc, score) => ({
+              ...subAcc,
+              [score.subjectName]: score.score,
+            }), {}),
+          }), {}));
+        } else {
+          // Clear data if no results are found for the selected exam
+          setSubjectMarks({});
+          setScores({});
+        }
+  
+        setResults(filteredResults);
+      } catch (error) {
+        console.error('Error fetching results:', error);
+      }
+    };
+  
+    if (selectedExam) {
+      fetchResults(); // Fetch results when a specific exam is selected
+    }
+  }, [selectedExam, assignedClass, assignedSection]);
+  
   const handleSubjectMarksChange = (subjectName, value) => {
     setSubjectMarks(prevMarks => ({
       ...prevMarks,
@@ -207,7 +250,7 @@ const PrepareResult = () => { // Class and Section are passed as props
   return (
     <div className="max-w-full mx-auto p-4 bg-white shadow-md rounded-lg">
       <h2 className="text-2xl font-semibold mb-4">Prepare Exam Results for {teacherClassIncharge}</h2>
-      
+
       <div className="flex gap-4 mb-4">
         <div className="flex-1">
           <label className="block text-gray-700 text-sm font-bold mb-2">Exam Name</label>
@@ -239,13 +282,14 @@ const PrepareResult = () => { // Class and Section are passed as props
                 <tr key={subject._id}>
                   <td className="py-2 px-4 border-b text-sm">{subject.subjectName}</td>
                   <td className="py-2 px-4 border-b text-sm">
-                    <input
-                      type="number"
-                      value={subjectMarks[subject.subjectName] || ''}
-                      onChange={(e) => handleSubjectMarksChange(subject.subjectName, e.target.value)}
-                      className="w-full border-gray-300 rounded-md text-sm p-1"
-                      placeholder="Score"
-                    />
+                  <input
+                type="number"
+                id={`subject-${subject.subjectName}`}
+                value={subjectMarks[subject.subjectName] || ''}
+                onChange={(e) => handleSubjectMarksChange(subject.subjectName, e.target.value)}
+                placeholder="Score"
+                className="w-full border-gray-300 rounded-md text-sm p-1"
+              />
                   </td>
                 </tr>
               ))}
@@ -256,52 +300,53 @@ const PrepareResult = () => { // Class and Section are passed as props
 
       <h3 className="text-xl font-semibold mb-4">Student Scores</h3>
       <div className="overflow-x-auto">
-          <table className="min-w-full bg-white shadow-md rounded-lg">
-            <thead className='bg-gray-200'>
-              <tr>
-                <th className="py-2 px-4 border-b text-left text-sm">Sr No.</th>
-                <th className="py-2 px-4 border-b text-left text-sm">Roll No</th>
-                <th className="py-2 px-4 border-b text-left text-sm">Student Name</th>
-                {subjects.map(subject => (
-                  <th key={subject._id} className="py-2 px-4 border-b text-left text-sm">{subject.subjectName}</th>
-                ))}
-                <th className="py-2 px-4 border-b text-left text-sm">Total</th>
-                <th className="py-2 px-4 border-b text-left text-sm">Percentage</th>
-                <th className="py-2 px-4 border-b text-left text-sm">Remarks</th>
-              </tr>
-            </thead>
-            <tbody className='bg-gray-100'>
-              {students.map((student, index) => (
-                <tr key={student._id}>
-                  <td className="py-2 px-4 border-b text-sm">{index + 1}</td>
-                  <td className="py-2 px-4 border-b text-sm">{student.rollNo}</td>
-                  <td className="py-2 px-4 border-b text-sm">{`${student.firstName} ${student.lastName}`}</td>
-                  {subjects.map(subject => (
-                    <td key={subject._id} className="py-2 px-4 border-b text-sm">
-                      <input
-                        type="number"
-                        value={scores[student._id]?.[subject.subjectName] || ''}
-                        onChange={(e) => handleScoreChange(student._id, subject.subjectName, e.target.value)}
-                        className="w-full border-gray-300 rounded-md text-sm p-2"
-                        placeholder="Score"
-                      />
-                    </td>
-                  ))}
-                  <td className="py-2 px-4 border-b text-sm">{calculateTotal(student._id)}</td>
-                  <td className="py-2 px-4 border-b text-sm">{calculatePercentage(student._id)}%</td>
-                  <td className="py-2 px-4 border-b text-sm">
-                  <input
-                      type="text"
-                      value={remarks[student._id] || ''}
-                      onChange={(e) => handleRemarkChange(student._id, e.target.value)}
-                      className="w-full px-2 py-1 border border-gray-300 rounded"
-                    />
-                  </td>
-                </tr>
+        <table className="min-w-full bg-white shadow-md rounded-lg">
+          <thead className='bg-gray-200'>
+            <tr>
+              <th className="py-2 px-4 border-b text-left text-sm">Sr No.</th>
+              <th className="py-2 px-4 border-b text-left text-sm">Roll No</th>
+              <th className="py-2 px-4 border-b text-left text-sm">Student Name</th>
+              {subjects.map(subject => (
+                <th key={subject._id} className="py-2 px-4 border-b text-left text-sm">{subject.subjectName}</th>
               ))}
-            </tbody>
-          </table>
-        </div>
+              <th className="py-2 px-4 border-b text-left text-sm">Total</th>
+              <th className="py-2 px-4 border-b text-left text-sm">Percentage</th>
+              <th className="py-2 px-4 border-b text-left text-sm">Remarks</th>
+            </tr>
+          </thead>
+          <tbody className='bg-gray-100'>
+            {students.map((student, index) => (
+              <tr key={student._id}>
+                <td className="py-2 px-4 border-b text-sm">{index + 1}</td>
+                <td className="py-2 px-4 border-b text-sm">{student.rollNo}</td>
+                <td className="py-2 px-4 border-b text-sm">{`${student.firstName} ${student.lastName}`}</td>
+                {subjects.map(subject => (
+                  <td key={subject._id} className="py-2 px-4 border-b text-sm">
+                   <input
+                    type="number"
+                    id={`score-${student._id}-${subject.subjectName}`}
+                    value={scores[student._id]?.[subject.subjectName] || ''}
+                    onChange={(e) => handleScoreChange(student._id, subject.subjectName, e.target.value)}
+                    placeholder={`Enter marks for ${subject.subjectName}`}
+                    className="w-full border-gray-300 rounded-md text-sm p-2"
+                  />
+                  </td>
+                ))}
+                <td className="py-2 px-4 border-b text-sm">{calculateTotal(student._id)}</td>
+                <td className="py-2 px-4 border-b text-sm">{calculatePercentage(student._id)}%</td>
+                <td className="py-2 px-4 border-b text-sm">
+                  <input
+                    type="text"
+                    value={remarks[student._id] || ''}
+                    onChange={(e) => handleRemarkChange(student._id, e.target.value)}
+                    className="w-full px-2 py-1 border border-gray-300 rounded"
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       <div className="flex justify-start my-4">
         <button

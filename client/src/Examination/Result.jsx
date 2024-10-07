@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Select from 'react-select';
 
-const ExamResultForm = () => {
+const Result = () => {
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState('');
   const [sections, setSections] = useState([]);
@@ -378,4 +378,4 @@ const ExamResultForm = () => {
   );
 };
 
-export default ExamResultForm;
+export default Result;
