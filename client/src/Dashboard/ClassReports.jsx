@@ -19,7 +19,7 @@ function ClassReport() {
             try {
                 const response = await axios.get(`http://localhost:7000/api/teachers/getTeacherById/66f12d8a8f27884ade9f1349`);
                 const teacherData = response.data;
-
+    
                 if (teacherData.classIncharge) {
                     const [className, sectionName] = teacherData.classIncharge.split(' (');
                     setTeacherClass(className);
@@ -27,24 +27,36 @@ function ClassReport() {
                 } else {
                     setMessage('You are not in charge of any class.');
                 }
-
-                // Fetch students based on the teacher's assigned class and section
-                const studentsResponse = await axios.get('http://localhost:7000/api/students/getStudents');
-                const activeStudents = studentsResponse.data.filter(student =>
-                    student.status === 'active' &&
-                    student.class === teacherClass &&
-                    student.section === teacherSection
-                );
-
-                setStudents(activeStudents);
-                setFilteredStudents(activeStudents);
             } catch (error) {
-                console.error('Error fetching teacher or student data:', error);
+                console.error('Error fetching teacher data:', error);
             }
         }
-
+    
         fetchTeacherData();
-    }, []);
+    }, []); // This useEffect only fetches the teacher data on initial render
+    
+    useEffect(() => {
+        if (teacherClass && teacherSection) {
+            // Fetch students only when teacherClass and teacherSection are set
+            async function fetchStudents() {
+                try {
+                    const studentsResponse = await axios.get('http://localhost:7000/api/students/getStudents');
+                    const activeStudents = studentsResponse.data.filter(student =>
+                        student.status === 'active' &&
+                        student.class === teacherClass &&
+                        student.section === teacherSection
+                    );
+    
+                    setStudents(activeStudents);
+                    setFilteredStudents(activeStudents);
+                } catch (error) {
+                    console.error('Error fetching student data:', error);
+                }
+            }
+    
+            fetchStudents();
+        }
+    }, [teacherClass, teacherSection]); // This useEffect depends on teacherClass and teacherSection    
 
     const handleSearch = () => {
         let tempStudents = students.filter(student => student.status === 'active');
