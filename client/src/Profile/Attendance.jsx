@@ -1,4 +1,4 @@
-import React, { useState, useEffect , useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 
 const Attendance = () => {
@@ -101,7 +101,7 @@ const Attendance = () => {
         }
       } else if (isToday) {
         // If it's today but no attendance record, show as gray
-        attendanceStatusClass = "bg-gray-500 text-white";
+        attendanceStatusClass = "bg-sky-500 text-white";
       }
 
       monthDays.push(
@@ -185,14 +185,22 @@ const Attendance = () => {
       <div className="mt-4">
         <h3 className="text-lg font-semibold mb-2">Attendance Summary:</h3>
         <div className="flex flex-col sm:flex-row sm:justify-between">
-          <div className="text-green-600 font-semibold">
-            Present: {totalPresent}
+          {/* Present Box */}
+          <div className="flex flex-col items-center bg-green-200 p-2 md:p-4 rounded-lg shadow-md mb-4 sm:mb-0">
+            <div className="text-green-600 font-semibold text-lg">Present</div>
+            <div className="text-green-800 font-bold text-xl">{totalPresent}</div>
           </div>
-          <div className="text-red-500 font-semibold">
-            Absent: {totalAbsent}
+
+          {/* Absent Box */}
+          <div className="flex flex-col items-center bg-red-200 p-2 md:p-4 rounded-lg shadow-md mb-4 sm:mb-0">
+            <div className="text-red-500 font-semibold text-lg">Absent</div>
+            <div className="text-red-800 font-bold text-xl">{totalAbsent}</div>
           </div>
-          <div className="text-yellow-400 font-semibold">
-            On Leave: {totalOnLeave}
+
+          {/* On Leave Box */}
+          <div className="flex flex-col items-center bg-yellow-200 p-2 md:p-4 rounded-lg shadow-md mb-4 sm:mb-0">
+            <div className="text-yellow-400 font-semibold text-lg">On Leave</div>
+            <div className="text-yellow-600 font-bold text-xl">{totalOnLeave}</div>
           </div>
         </div>
       </div>
@@ -232,14 +240,14 @@ const Attendance = () => {
                 <div className="text-lg">
                   <span className="font-bold">Status: </span>
                   <span className={`${selectedAttendance.status === "Present"
-                      ? "text-green-600"
-                      : selectedAttendance.status === "Absent"
-                        ? "text-red-500"
-                        : selectedAttendance.status === "Late"
-                          ? "text-orange-500"
-                          : selectedAttendance.status === "onLeave"
-                            ? "text-yellow-400"
-                            : ""
+                    ? "text-green-600"
+                    : selectedAttendance.status === "Absent"
+                      ? "text-red-500"
+                      : selectedAttendance.status === "Late"
+                        ? "text-orange-500"
+                        : selectedAttendance.status === "onLeave"
+                          ? "text-yellow-400"
+                          : ""
                     }`}>
                     {selectedAttendance.status}
                   </span>
