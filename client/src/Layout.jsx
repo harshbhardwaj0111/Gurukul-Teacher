@@ -18,7 +18,7 @@ import TestSchedule from './Courses/TestSchedule';
 import OldPaper from './Examination/OldPaper';
 import PrepareResult from './Examination/PrepareResult';
 import Result from './Examination/Result';
-import FeeReport from './Fee/FeeReport';
+import FeeReport from './Dashboard/FeeReport';
 import AddNotification from './Notification/AddNotification';
 import StudentAchievement from './Notification/StudentAchievement';
 import ViewNotification from './Notification/ViewNotification';
@@ -27,6 +27,8 @@ import Schedule from './Profile/Schedule';
 import Ledger from './Salary/Ledger';
 import ViewSalary from './Salary/ViewSalary';
 import BottomNav from './Components/BottomNav';
+import Dashboard from './Pages/Dashboard';
+import ClassReport from './Dashboard/ClassReports';
 
 const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -50,6 +52,7 @@ const Layout = () => {
           {/* Main content */}
           <div className="main-content flex-1 p-4">
             <Routes>
+            <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/profile-management" element={<ProfileManagement />} />
               <Route path="/courses-management" element={<CoursesManagement />} />
               <Route path="/examination-management" element={<Examination />} />
@@ -75,6 +78,7 @@ const Layout = () => {
               <Route path="/view-salary" element={<ViewSalary />} />
               {/* Fee */}
               <Route path="/fee-report" element={<FeeReport />} />
+              <Route path="/class-reports" element={<ClassReport />} />
               {/* Notification */}
               <Route path="/add-notification" element={<AddNotification />} />
               <Route path="/student-achievements" element={<StudentAchievement />} />
