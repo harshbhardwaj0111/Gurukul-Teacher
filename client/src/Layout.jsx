@@ -52,7 +52,8 @@ const Layout = () => {
           {/* Main content */}
           <div className="main-content flex-1 p-4">
             <Routes>
-            <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/profile-management" element={<ProfileManagement />} />
               <Route path="/courses-management" element={<CoursesManagement />} />
               <Route path="/examination-management" element={<Examination />} />

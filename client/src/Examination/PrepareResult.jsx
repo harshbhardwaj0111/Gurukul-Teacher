@@ -52,7 +52,6 @@ const PrepareResult = () => { // Class and Section are passed as props
         const filteredStudents = response.data.filter(student =>
           student.class === assignedClass && student.section === assignedSection
         );
-        console.log(filteredStudents)
         setStudents(filteredStudents);
       })
       .catch(error => console.error('Error fetching students:', error));

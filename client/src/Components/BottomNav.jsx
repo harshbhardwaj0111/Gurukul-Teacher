@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 const BottomNav = () => {
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-xl flex justify-around md:hidden ">
-      <Link to="/" className="flex-1 text-center py-3 transition-all duration-300 hover:bg-blue-700 rounded-lg mx-1">
+      <Link to="/dashboard" className="flex-1 text-center py-3 transition-all duration-300 hover:bg-blue-700 rounded-lg mx-1">
       <i class="fa-solid fa-house text-2xl"></i>
         <span className="block text-xs mt-1">Home</span>
       </Link>
