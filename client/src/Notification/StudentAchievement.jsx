@@ -135,7 +135,7 @@ const StudentAchievement = () => {
       <div className="bg-white p-2 md:p-6 w-full max-w-full">
         <h2 className="text-xl md:text-3xl font-bold text-center md:mb-4">
           <i className="md:hidden text-yellow-400 fas fa-trophy mr-2"></i>
-          {eventData.eventName ? `Add Achievement of ${assignedClass} (${assignedSection})` : `Edit Student Achievement of ${assignedClass} (${assignedSection})`}
+          {eventData.eventName ? `Edit Achievement of ${assignedClass} (${assignedSection})` : `Add Student Achievement of ${assignedClass} (${assignedSection})`}
         </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
 
@@ -216,8 +216,8 @@ const StudentAchievement = () => {
       </div>
 
       {/* Display Achievements */}
-      <div className="bg-white p-6 w-full max-w-full">
-        <h2 className="text-2xl font-bold mb-5">Achievements List</h2>
+      <div className="bg-white md:p-6 w-full max-w-full">
+        <h2 className="text-2xl font-bold mb-5 mt-2">Achievements List</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {achievements.length > 0 ? (
             achievements

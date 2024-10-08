@@ -12,14 +12,14 @@ const Dashboard = () => {
 
         {/* Grid layout for dashboard options */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-8 hidden sm:grid">
-          {/* Notifications */}
-          <Link to="/teacher-notifications">
+          {/* User Password */}
+          <Link to="/user-password">
             <div className="bg-white shadow-md rounded-lg p-6 hover:bg-gray-50 transition duration-200">
               <div className="flex items-center mb-4">
-                <i className="fas fa-bell text-blue-800 text-3xl mr-3"></i>
-                <h2 className="text-2xl font-semibold text-black">Notifications</h2>
+                <i className="fas fa-user text-blue-800 text-3xl mr-3"></i>
+                <h2 className="text-2xl font-semibold text-black">User Password</h2>
               </div>
-              <p className="text-gray-700">Stay updated with the latest announcements and important notices.</p>
+              <p className="text-gray-700">List of your class student's username and password</p>
             </div>
           </Link>
 
@@ -27,7 +27,7 @@ const Dashboard = () => {
           <Link to="/class-reports">
             <div className="bg-white shadow-md rounded-lg p-6 hover:bg-gray-50 transition duration-200">
               <div className="flex items-center mb-4">
-                <i className="fas fa-chart-bar text-green-800 text-3xl mr-3"></i>
+                <i className="fas fa-chart-bar text-blue-800 text-3xl mr-3"></i>
                 <h2 className="text-2xl font-semibold text-black">Class Reports</h2>
               </div>
               <p className="text-gray-700">View and manage class performance reports.</p>
@@ -37,11 +37,11 @@ const Dashboard = () => {
 
         {/* Mobile View: Icons and text for smaller screens */}
         <div className="grid grid-cols-2 gap-6 sm:hidden">
-          {/* Notifications */}
+          {/* User Password */}
           <Link to="/teacher-notifications">
             <div className="bg-blue-100 shadow-md rounded-lg p-4 flex flex-col justify-center items-center hover:bg-blue-200 transition duration-200">
-              <i className="fas fa-bell text-blue-800 text-4xl mb-2"></i>
-              <span className="text-sm text-blue-800 font-semibold">Notifications</span>
+              <i className="fas fa-user text-yellow-400 text-4xl mb-2"></i>
+              <span className="text-sm text-blue-800 font-semibold">User Password</span>
             </div>
           </Link>
 

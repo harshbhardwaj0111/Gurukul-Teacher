@@ -41,7 +41,7 @@ const TeacherAttendance = () => {
         try {
           const response = await axios.get('http://localhost:7000/api/students/getStudents');
           const filteredStudents = response.data.filter(student =>
-            student.class === assignedClass && student.section === assignedSection
+            student.status === "active" & student.class === assignedClass && student.section === assignedSection
           );
           setStudents(filteredStudents);
           setAttendance(
@@ -103,6 +103,7 @@ const TeacherAttendance = () => {
           <table className="min-w-full bg-white text-center border border-gray-200">
             <thead>
               <tr className="bg-gray-100">
+                <th className="py-2 px-2 md:px-4 border-b">Sr No.</th>
                 <th className="py-2 px-2 md:px-4 border-b">Roll No</th>
                 <th className="py-2 px-2 md:px-4 border-b">Student Name</th>
                 <th className="py-2 px-2 md:px-4 border-b">Status</th>
@@ -112,6 +113,7 @@ const TeacherAttendance = () => {
             <tbody>
               {students.map((student, index) => (
                 <tr key={student.rollNo}>
+                  <td className="border px-2 md:px-4 py-2">{index + 1}</td>
                   <td className="border px-2 md:px-4 py-2">{student.rollNo}</td>
                   <td className="border px-2 md:px-4 py-2">{student.firstName}</td>
                   <td className="border px-2 md:px-4 py-2">
