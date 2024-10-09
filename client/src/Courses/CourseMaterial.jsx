@@ -13,7 +13,6 @@ function CourseMaterial() {
   });
   const [editingId, setEditingId] = useState(null);
   const [classes, setClasses] = useState([]);
-  const [sections, setSections] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [teacher, setTeacher] = useState(null);
   const [isLoading, setIsLoading] = useState(false); // Loading state
@@ -23,8 +22,12 @@ function CourseMaterial() {
       try {
         const response = await axios.get(`http://localhost:7000/api/teachers/getTeacherById/66f12d8a8f27884ade9f1349`);
         setTeacher(response.data);
-        // Fetch classes only after teacher data is set
-        fetchClasses(response.data.name); // Use teacher's name
+        
+        // Destructure the teacher's first and last name from the response
+        const { firstName, lastName } = response.data;
+    
+        // Fetch classes using the teacher's full name
+        fetchClasses(`${firstName} ${lastName}`);
       } catch (err) {
         console.error('Error fetching teacher data:', err);
       }
@@ -40,7 +43,7 @@ function CourseMaterial() {
   // Fetch classes based on teacher's name
   const fetchClasses = async (teacherName) => {
     try {
-      const response = await axios.get(`http://localhost:7000/api/timetable/getTeacherClasses/Rinku%20Singh`); // Update API endpoint
+      const response = await axios.get(`http://localhost:7000/api/timetable/getTeacherClasses/${teacherName}`); // Update API endpoint
       setClasses(response.data); // Assuming response.data is an array of classes
     } catch (error) {
       console.error('Error fetching classes:', error);
@@ -48,10 +51,10 @@ function CourseMaterial() {
   };
 
   useEffect(() => {
-    if (form.className && form.sectionName) {
+    if (form.className) {
       fetchSubjects(form.className);
     }
-  }, [form.className, form.sectionName]);
+  }, [form.className]);
 
   const fetchCourseMaterials = async () => {
     try {
@@ -62,14 +65,20 @@ function CourseMaterial() {
     }
   };
 
+  // Update fetchSubjects to use the new API endpoint
   const fetchSubjects = async (className) => {
+    if (!teacher) return; // Return if teacher data isn't available yet
     try {
-      const response = await axios.get(`http://localhost:7000/api/subjects/${className}/getSubjectsByClassName`);
-      const teacherSubjects = teacher?.subjectYouTeach[0]?.split(',') || [];
-      const filteredSubjects = response.data.filter(sub =>
-        teacherSubjects.includes(sub.subjectName)
-      );
-      setSubjects(filteredSubjects);
+      const { firstName, lastName } = teacher;
+      const response = await axios.get(`http://localhost:7000/api/timetable/getSubjectsByTeacherAndClass/${firstName}%20${lastName}/${className}`);
+      console.log(response.data);
+      // Check if the response is an array before setting state
+      if (Array.isArray(response.data.subjects)) {
+        setSubjects(response.data.subjects); // Assuming the API returns the subjects correctly
+      } else {
+        setSubjects([]); // Reset to an empty array if the response is not an array
+        console.error('Expected an array but got:', response.data); // Log the unexpected response
+      }
     } catch (error) {
       console.error('Error fetching subjects:', error);
     }
@@ -154,16 +163,14 @@ function CourseMaterial() {
     }
   };
 
+  // Filter course materials based on selected class and subject
   const getFilteredCourseMaterials = () => {
-    if (!teacher) return courseMaterials; // If teacher data isn't available yet, return all materials
-
-    const teacherClasses = teacher.classYouTeach[0]?.split(',') || [];
-    const teacherSubjects = teacher.subjectYouTeach[0]?.split(',') || [];
-
-    return courseMaterials.filter(material =>
-      teacherClasses.includes(material.className) &&
-      teacherSubjects.includes(material.subjectName)
-    );
+    return courseMaterials.filter(material => {
+      return (
+        (form.className === '' || material.className === form.className) &&
+        (form.subjectName === '' || material.subjectName === form.subjectName)
+      );
+    });
   };
 
   const clearForm = () => {
@@ -202,26 +209,25 @@ function CourseMaterial() {
             </select>
           </div>
 
-
-          <div>
-            <label htmlFor="subjectName" className="block text-sm font-medium text-gray-700">Subject</label>
-            <select
-              id="subjectName"
-              name="subjectName"
-              value={form.subjectName}
-              onChange={handleInputChange}
-              required
-              className="mt-1 p-2 border rounded w-full"
-              disabled={!form.className || !form.sectionName}
-            >
-              <option value="">Select Subject</option>
-              {subjects.map(sub => (
-                <option key={sub._id} value={sub.subjectName}>
-                  {sub.subjectName}
-                </option>
-              ))}
-            </select>
-          </div>
+<div>
+  <label htmlFor="subjectName" className="block text-sm font-medium text-gray-700">Subject</label>
+  <select
+    id="subjectName"
+    name="subjectName"
+    value={form.subjectName}
+    onChange={handleInputChange}
+    required
+    className="mt-1 p-2 border rounded w-full"
+    disabled={!form.className}
+  >
+    <option value="">Select Subject</option>
+    {subjects.map((subject, index) => ( // Map over the subjects array
+      <option key={index} value={subject}>
+        {subject}
+      </option>
+    ))}
+  </select>
+</div>
 
           <div>
             <label htmlFor="title" className="block text-sm font-medium text-gray-700">Title</label>
@@ -243,6 +249,7 @@ function CourseMaterial() {
               id="file"
               name="file"
               onChange={handleFileChange}
+              required
               className="mt-1 p-2 border rounded w-full"
             />
           </div>
@@ -255,48 +262,96 @@ function CourseMaterial() {
               value={form.description}
               onChange={handleInputChange}
               className="mt-1 p-2 border rounded w-full"
-              rows="3"
-            />
+            ></textarea>
           </div>
         </div>
-        <div className="mt-4">
-          <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded">
-            {isLoading ? 'Saving...' : editingId ? 'Update Material' : 'Add Material'}
-          </button>
-          <button type="button" onClick={clearForm} className="bg-gray-300 text-gray-800 px-4 py-2 rounded ml-2">
-            Clear Form
-          </button>
-        </div>
+        <button
+          type="submit"
+          className={`mt-4 ${isLoading ? 'bg-gray-400' : 'bg-blue-800 hover:bg-blue-600'} text-white p-2 md:px-6 rounded`}
+          disabled={isLoading}
+        >
+          {isLoading ? 'Adding...' : editingId ? 'Update Course Material' : 'Add Course Material'}
+        </button>
+        {editingId && (
+        <button
+          onClick={clearForm}
+          className="bg-gray-600 text-white py-2 px-4 ml-4 rounded"
+        >
+          Cancel
+        </button>
+      )}
       </form>
 
-      <h2 className="text-xl md:text-2xl font-semibold mb-2">Course Materials List</h2>
-      <table className="min-w-full bg-white">
-        <thead>
-          <tr className="w-full bg-gray-200 text-gray-600 uppercase text-sm leading-normal">
-            <th className="py-3 px-6 text-left">Title</th>
-            <th className="py-3 px-6 text-left">Subject</th>
-            <th className="py-3 px-6 text-left">Class</th>
-            <th className="py-3 px-6 text-left">Section</th>
-            <th className="py-3 px-6 text-left">Description</th>
-            <th className="py-3 px-6 text-center">Actions</th>
-          </tr>
-        </thead>
-        <tbody className="text-gray-600 text-sm font-light">
-          {getFilteredCourseMaterials().map(material => (
-            <tr key={material._id} className="border-b border-gray-200 hover:bg-gray-100">
-              <td className="py-3 px-6 text-left">{material.title}</td>
-              <td className="py-3 px-6 text-left">{material.subjectName}</td>
-              <td className="py-3 px-6 text-left">{material.className}</td>
-              <td className="py-3 px-6 text-left">{material.sectionName}</td>
-              <td className="py-3 px-6 text-left">{material.description}</td>
-              <td className="py-3 px-6 text-center">
-                <button onClick={() => handleEdit(material)} className="bg-yellow-500 text-white px-2 py-1 rounded">Edit</button>
-                <button onClick={() => handleDelete(material._id)} className="bg-red-500 text-white px-2 py-1 rounded ml-2">Delete</button>
-              </td>
+      <h2 className="text-xl font-bold mb-4">Course Materials</h2>
+      {/* Responsive Table for Larger Screens */}
+      <div className="hidden md:block">
+        <table className="min-w-full bg-white border text-center border-gray-300 divide-y divide-gray-200">
+          <thead className="bg-gray-200 border-b border-gray-300">
+            <tr>
+              <th className="px-4 py-2">SR No.</th>
+              <th className="px-4 py-2">Class</th>
+              <th className="px-4 py-2">Subject</th>
+              <th className="px-4 py-2">Title</th>
+              <th className="px-4 py-2">File</th>
+              <th className="px-4 py-2">Action</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {getFilteredCourseMaterials().map((material, index) => (
+              <tr key={material._id}>
+                <td className="px-4 py-2">{index + 1}</td>
+                <td className="px-4 py-2">{material.className} ({material.sectionName})</td>
+                <td className="px-4 py-2">{material.subjectName}</td>
+                <td className="px-4 py-2">{material.title}</td>
+                <td className="px-4 py-2">
+                  <a href={material.courseMaterialFile} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                    View File
+                  </a>
+                </td>
+                <td className="px-4 py-2">
+                  <div className="flex flex-row justify-center gap-4">
+                    <button
+                      onClick={() => handleEdit(material)}
+                      className="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-400 transition duration-200 "
+                    >
+                      <i className="fas fa-edit mr-1"></i>Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(material._id)}
+                      className="bg-red-600 text-white rounded px-2 py-1 hover:bg-red-500 transition duration-200 "
+                    >
+                      <i className="fas fa-trash mr-1"></i>Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Responsive Cards for Mobile View */}
+      <div className="grid grid-cols-1 md:hidden gap-4">
+        {getFilteredCourseMaterials().map((material) => (
+          <div key={material._id} className="border rounded p-4 bg-white shadow">
+            <h3 className="font-bold"><i className="fas fa-pen text-yellow-900 mr-2"></i>{material.title}</h3>
+            <p><i className="fas fa-chalkboard-teacher text-teal-500 mr-2"></i>{material.className} ({material.sectionName})</p>
+            <p><i className="fas fa-book text-green-500 mr-2"></i>
+              {material.subjectName}</p>
+            <div className="flex justify-between mt-2">
+              <a href={material.courseMaterialFile} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                <i className="fas fa-eye mr-1"></i>View File
+              </a>
+              <button onClick={() => handleEdit(material)} className="text-yellow-500 hover:underline">
+                <i className="fas fa-edit mr-1"></i>Edit
+              </button>
+              <button onClick={() => handleDelete(material._id)} className="text-red-500 hover:underline">
+                <i className="fas fa-trash mr-1"></i>Delete
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
