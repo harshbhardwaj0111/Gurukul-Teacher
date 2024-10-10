@@ -17,17 +17,21 @@ function TestSchedule() {
   });
   const [editingId, setEditingId] = useState(null);
   const [classes, setClasses] = useState([]);
-  const [sections, setSections] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [teacher, setTeacher] = useState(null);
+  const [isLoading, setIsLoading] = useState(false); 
 
   useEffect(() => {
     const fetchTeacher = async () => {
       try {
         const response = await axios.get(`http://localhost:7000/api/teachers/getTeacherById/66f12d8a8f27884ade9f1349`);
         setTeacher(response.data);
-        // Fetch classes only after teacher data is set
-        fetchClasses(response.data);
+
+        // Destructure the teacher's first and last name from the response
+        const { firstName, lastName } = response.data;
+
+        // Fetch classes using the teacher's full name
+        fetchClasses(`${firstName} ${lastName}`);
       } catch (err) {
         console.error('Error fetching teacher data:', err);
       }
@@ -40,16 +44,11 @@ function TestSchedule() {
     fetchTestSchedules();
   }, []);
 
-  // Fetch classes only after the teacher is fetched
-  const fetchClasses = async (teacherData) => {
+  // Fetch classes based on teacher's name
+  const fetchClasses = async (teacherName) => {
     try {
-      const response = await axios.get('http://localhost:7000/api/classes/getClasses');
-      // Split the classYouTeach array into individual classes and filter
-      const teacherClasses = teacherData?.classYouTeach[0]?.split(',') || []; // Assuming classYouTeach is an array with one string
-      const filteredClasses = response.data.filter(cls =>
-        teacherClasses.includes(cls.className)
-      );
-      setClasses(filteredClasses);
+      const response = await axios.get(`http://localhost:7000/api/timetable/getTeacherClasses/${teacherName}`); // Update API endpoint
+      setClasses(response.data); // Assuming response.data is an array of classes
     } catch (error) {
       console.error('Error fetching classes:', error);
     }
@@ -57,15 +56,9 @@ function TestSchedule() {
 
   useEffect(() => {
     if (form.class) {
-      fetchSections(form.class);
-    }
-  }, [form.class]);
-
-  useEffect(() => {
-    if (form.class && form.section) {
       fetchSubjects(form.class);
     }
-  }, [form.class, form.section]);
+  }, [form.class]);
 
   const fetchTestSchedules = async () => {
     try {
@@ -76,23 +69,19 @@ function TestSchedule() {
     }
   };
 
-  const fetchSections = async (className) => {
-    try {
-      const response = await axios.get(`http://localhost:7000/api/sections/${className}/getSectionsByClassName`);
-      setSections(response.data);
-    } catch (error) {
-      console.error('Error fetching sections:', error);
-    }
-  };
-
   const fetchSubjects = async (className) => {
+    if (!teacher) return; // Return if teacher data isn't available yet
     try {
-      const response = await axios.get(`http://localhost:7000/api/subjects/${className}/getSubjectsByClassName`);
-      const teacherSubjects = teacher?.subjectYouTeach[0]?.split(',') || [];
-      const filteredSubjects = response.data.filter(sub =>
-        teacherSubjects.includes(sub.subjectName)
-      );
-      setSubjects(filteredSubjects);
+      const { firstName, lastName } = teacher;
+      const response = await axios.get(`http://localhost:7000/api/timetable/getSubjectsByTeacherAndClass/${firstName}%20${lastName}/${className}`);
+      console.log(response.data);
+      // Check if the response is an array before setting state
+      if (Array.isArray(response.data.subjects)) {
+        setSubjects(response.data.subjects); // Assuming the API returns the subjects correctly
+      } else {
+        setSubjects([]); // Reset to an empty array if the response is not an array
+        console.error('Expected an array but got:', response.data); // Log the unexpected response
+      }
     } catch (error) {
       console.error('Error fetching subjects:', error);
     }
@@ -100,7 +89,23 @@ function TestSchedule() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setForm({ ...form, [name]: value });
+
+    // Check if the selected field is class
+    if (name === 'class') {
+      const [selectedClassName, selectedSectionName] = value.split('|'); // Split based on a unique separator
+
+      // Update both class and section
+      setForm({
+        ...form,
+        class: selectedClassName,
+        section: selectedSectionName || '', // Default to an empty string if undefined
+      });
+    } else {
+      setForm({
+        ...form,
+        [name]: value,
+      });
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -129,6 +134,8 @@ function TestSchedule() {
       fetchTestSchedules();
     } catch (error) {
       console.error('Error saving test schedule:', error);
+    } finally {
+      setIsLoading(false); // Stop loading
     }
   };
 
@@ -150,15 +157,13 @@ function TestSchedule() {
   };
 
   const getFilteredTestSchedules = () => {
-    if (!teacher) return testSchedules; // If teacher data isn't available yet, return all materials
-
-    const teacherClasses = teacher.classYouTeach[0]?.split(',') || [];
-    const teacherSubjects = teacher.subjectYouTeach[0]?.split(',') || [];
-
-    return testSchedules.filter(material => 
-      teacherClasses.includes(material.class) && 
-      teacherSubjects.includes(material.subject)
-    );
+    return testSchedules.filter(material => {
+      return (
+        (form.class === '' || material.class === form.class) &&
+        (form.section === '' || material.section === form.section) &&
+        (form.subject === '' || material.subject === form.subject)
+      );
+  });
   };
 
 
@@ -201,35 +206,15 @@ function TestSchedule() {
             <select
               id="class"
               name="class"
-              value={form.class}
+              value={`${form.class}|${form.section}`}
               onChange={handleInputChange}
               required
               className="mt-1 p-2 border rounded w-full"
             >
               <option value="">Select Class</option>
               {classes.map(cls => (
-                <option key={cls._id} value={cls.className}>
-                  {cls.className}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="section" className="block text-sm font-medium text-gray-700">Section</label>
-            <select
-              id="section"
-              name="section"
-              value={form.section}
-              onChange={handleInputChange}
-              required
-              className="mt-1 p-2 border rounded w-full"
-              disabled={!form.class}
-            >
-              <option value="">Select Section</option>
-              {sections.map(sec => (
-                <option key={sec._id} value={sec.sectionName}>
-                  {sec.sectionName}
+                <option key={cls._id} value={`${cls.className}|${cls.sectionName}`}>
+                  {cls.className} ({cls.sectionName})
                 </option>
               ))}
             </select>
@@ -244,12 +229,12 @@ function TestSchedule() {
               onChange={handleInputChange}
               required
               className="mt-1 p-2 border rounded w-full"
-              disabled={!form.class || !form.section}
+              disabled={!form.class}
             >
               <option value="">Select Subject</option>
-              {subjects.map(sub => (
-                <option key={sub._id} value={sub.subjectName}>
-                  {sub.subjectName}
+              {subjects.map((subject, index) => ( // Map over the subjects array
+                <option key={index} value={subject}>
+                  {subject}
                 </option>
               ))}
             </select>
@@ -333,9 +318,10 @@ function TestSchedule() {
         </div>
         <button
           type="submit"
-          className="mt-4 bg-blue-800 hover:bg-blue-600 text-white p-2 md:px-6 rounded"
+          className={`mt-4 ${isLoading ? 'bg-gray-400' : 'bg-blue-800 hover:bg-blue-600'} text-white p-2 md:px-6 rounded`}
+          disabled={isLoading}
         >
-          {editingId ? 'Update Test Schedule' : 'Add Test Schedule'}
+          {isLoading ? 'Adding...' : editingId ? 'Update Test Schedule' : 'Add Test Schedule'}
         </button>
         {editingId && (
           <button
@@ -365,7 +351,9 @@ function TestSchedule() {
             </tr>
           </thead>
           <tbody className='bg-gray-50'>
-            {getFilteredTestSchedules().map((schedule, index) => (
+            {form.class && form.subject ? (
+              getFilteredTestSchedules().length > 0 ? (
+              getFilteredTestSchedules().map((schedule, index) => (
               <tr key={schedule._id} className='hover:bg-gray-100'>
                 <td className="px-4 py-2 border-b border-gray-300">{index + 1}</td>
                 <td className="px-4 py-2 border-b border-gray-300">{schedule.testName}</td>
@@ -392,14 +380,26 @@ function TestSchedule() {
                   </div>
                 </td>
               </tr>
-            ))}
+            ))
+              ) : (
+                <tr>
+                  <td colSpan="9" className="px-4 py-2 text-center">No test schedule found.</td>
+                </tr>
+              )
+            ) : (
+              <tr>
+                <td colSpan="9" className="px-4 py-2 text-center">Please select a class and subject to see the test schedules.</td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
 
       {/* Card Format for Mobile Screens */}
       <div className="block md:hidden">
-        {getFilteredTestSchedules().map((schedule, index) => (
+        {form.class && form.subject ? (
+          getFilteredTestSchedules().length > 0 ? (
+          getFilteredTestSchedules().map((schedule, index) => (
           <div key={schedule._id} className="bg-white border shadow-md rounded p-4 mb-4">
             <h3 className="font-bold"><i className="fas fa-pen text-blue-600 mr-2"></i>{schedule.testName}</h3>
             <p><i className="fas fa-chalkboard-teacher text-teal-500 mr-2"></i>{schedule.class} ({schedule.section})</p>
@@ -418,7 +418,17 @@ function TestSchedule() {
               </button>
             </div>
           </div>
-        ))}
+        ))
+          ) : (
+            <div className="border rounded p-4 bg-white shadow text-center">
+              <p>No test schedules found.</p>
+            </div>
+          )
+        ) : (
+          <div className="border rounded p-4 bg-white shadow text-center">
+            <p>Please select a class and subject to see the test schedules.</p>
+          </div>
+        )}
       </div>
     </div>
   );

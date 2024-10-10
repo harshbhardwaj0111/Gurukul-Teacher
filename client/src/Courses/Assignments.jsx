@@ -360,12 +360,12 @@ function Assignments() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="6" className="px-4 py-2 text-center">No assignments found.</td>
+                  <td colSpan="7" className="px-4 py-2 text-center">No assignments found.</td>
                 </tr>
               )
             ) : (
               <tr>
-                <td colSpan="6" className="px-4 py-2 text-center">Please select a class and subject to see the assignments.</td>
+                <td colSpan="7" className="px-4 py-2 text-center">Please select a class and subject to see the assignments.</td>
               </tr>
             )}
           </tbody>
