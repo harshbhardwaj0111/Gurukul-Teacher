@@ -9,13 +9,12 @@ function Assignments() {
     className: '',
     sectionName: '',
     dueDate: '',
-    marks:'',
+    marks: '',
     file: null,
     description: '',
   });
   const [editingId, setEditingId] = useState(null);
   const [classes, setClasses] = useState([]);
-  const [sections, setSections] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [teacher, setTeacher] = useState(null);
 
@@ -24,7 +23,12 @@ function Assignments() {
       try {
         const response = await axios.get(`http://localhost:7000/api/teachers/getTeacherById/66f12d8a8f27884ade9f1349`);
         setTeacher(response.data);
-        fetchClasses(response.data);
+
+        // Destructure the teacher's first and last name from the response
+        const { firstName, lastName } = response.data;
+
+        // Fetch classes using the teacher's full name
+        fetchClasses(`${firstName} ${lastName}`);
       } catch (err) {
         console.error('Error fetching teacher data:', err);
       }
@@ -37,14 +41,11 @@ function Assignments() {
     fetchAssignments();
   }, []);
 
-  const fetchClasses = async (teacherData) => {
+  // Fetch classes based on teacher's name
+  const fetchClasses = async (teacherName) => {
     try {
-      const response = await axios.get('http://localhost:7000/api/classes/getClasses');
-      const teacherClasses = teacherData?.classYouTeach[0]?.split(',') || [];
-      const filteredClasses = response.data.filter(cls =>
-        teacherClasses.includes(cls.className)
-      );
-      setClasses(filteredClasses);
+      const response = await axios.get(`http://localhost:7000/api/timetable/getTeacherClasses/${teacherName}`); // Update API endpoint
+      setClasses(response.data); // Assuming response.data is an array of classes
     } catch (error) {
       console.error('Error fetching classes:', error);
     }
@@ -52,15 +53,9 @@ function Assignments() {
 
   useEffect(() => {
     if (form.className) {
-      fetchSections(form.className);
-    }
-  }, [form.className]);
-
-  useEffect(() => {
-    if (form.className && form.sectionName) {
       fetchSubjects(form.className);
     }
-  }, [form.className, form.sectionName]);
+  }, [form.className]);
 
   const fetchAssignments = async () => {
     try {
@@ -71,23 +66,20 @@ function Assignments() {
     }
   };
 
-  const fetchSections = async (className) => {
-    try {
-      const response = await axios.get(`http://localhost:7000/api/sections/${className}/getSectionsByClassName`);
-      setSections(response.data);
-    } catch (error) {
-      console.error('Error fetching sections:', error);
-    }
-  };
-
+  // Update fetchSubjects to use the new API endpoint
   const fetchSubjects = async (className) => {
+    if (!teacher) return; // Return if teacher data isn't available yet
     try {
-      const response = await axios.get(`http://localhost:7000/api/subjects/${className}/getSubjectsByClassName`);
-      const teacherSubjects = teacher?.subjectYouTeach[0]?.split(',') || [];
-      const filteredSubjects = response.data.filter(sub =>
-        teacherSubjects.includes(sub.subjectName)
-      );
-      setSubjects(filteredSubjects);
+      const { firstName, lastName } = teacher;
+      const response = await axios.get(`http://localhost:7000/api/timetable/getSubjectsByTeacherAndClass/${firstName}%20${lastName}/${className}`);
+      console.log(response.data);
+      // Check if the response is an array before setting state
+      if (Array.isArray(response.data.subjects)) {
+        setSubjects(response.data.subjects); // Assuming the API returns the subjects correctly
+      } else {
+        setSubjects([]); // Reset to an empty array if the response is not an array
+        console.error('Expected an array but got:', response.data); // Log the unexpected response
+      }
     } catch (error) {
       console.error('Error fetching subjects:', error);
     }
@@ -95,7 +87,23 @@ function Assignments() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setForm({ ...form, [name]: value });
+
+    // Check if the selected field is className
+    if (name === 'className') {
+      const [selectedClassName, selectedSectionName] = value.split('|'); // Split based on a unique separator
+
+      // Update both className and sectionName
+      setForm({
+        ...form,
+        className: selectedClassName,
+        sectionName: selectedSectionName || '', // Default to an empty string if undefined
+      });
+    } else {
+      setForm({
+        ...form,
+        [name]: value,
+      });
+    }
   };
 
   const handleFileChange = (e) => {
@@ -112,7 +120,7 @@ function Assignments() {
     formData.append('description', form.description);
     formData.append('marks', form.marks);
     if (form.file) {
-    formData.append('file', form.file);
+      formData.append('file', form.file);
     }
 
     //setIsLoading(true); // Start loading
@@ -130,7 +138,7 @@ function Assignments() {
         className: '',
         sectionName: '',
         dueDate: '',
-        marks:'',
+        marks: '',
         file: null,
         description: '',
       });
@@ -159,15 +167,13 @@ function Assignments() {
   };
 
   const getFilteredAssignments = () => {
-    if (!teacher) return assignments; // If teacher data isn't available yet, return all assignments
-
-    const teacherClasses = teacher.classYouTeach[0]?.split(',') || [];
-    const teacherSubjects = teacher.subjectYouTeach[0]?.split(',') || [];
-
-    return assignments.filter(assignment => 
-      teacherClasses.includes(assignment.className) && 
-      teacherSubjects.includes(assignment.subjectName)
-    );
+    return assignments.filter(assignment => {
+      return (
+        (form.className === '' || assignment.className === form.className) &&
+        (form.sectionName === '' || assignment.sectionName === form.sectionName) &&
+        (form.subjectName === '' || assignment.subjectName === form.subjectName)
+      );
+    });
   };
 
   const clearForm = () => {
@@ -177,7 +183,7 @@ function Assignments() {
       className: '',
       sectionName: '',
       dueDate: '',
-      marks:'',
+      marks: '',
       file: null,
       description: '',
     });
@@ -193,40 +199,20 @@ function Assignments() {
       <form onSubmit={handleSubmit} className="bg-white p-3 md:p-6 rounded-lg shadow-md mb-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-        <div>
+          <div>
             <label htmlFor="className" className="block text-sm font-medium text-gray-700">Class</label>
             <select
               id="className"
               name="className"
-              value={form.className}
+              value={`${form.className}|${form.sectionName}`}
               onChange={handleInputChange}
               required
               className="mt-1 p-2 border rounded w-full"
             >
               <option value="">Select Class</option>
               {classes.map(cls => (
-                <option key={cls._id} value={cls.className}>
-                  {cls.className}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="sectionName" className="block text-sm font-medium text-gray-700">Section</label>
-            <select
-              id="sectionName"
-              name="sectionName"
-              value={form.sectionName}
-              onChange={handleInputChange}
-              required
-              className="mt-1 p-2 border rounded w-full"
-              disabled={!form.className}
-            >
-              <option value="">Select Section</option>
-              {sections.map(sec => (
-                <option key={sec._id} value={sec.sectionName}>
-                  {sec.sectionName}
+                <option key={cls._id} value={`${cls.className}|${cls.sectionName}`}>
+                  {cls.className} ({cls.sectionName})
                 </option>
               ))}
             </select>
@@ -241,12 +227,12 @@ function Assignments() {
               onChange={handleInputChange}
               required
               className="mt-1 p-2 border rounded w-full"
-              disabled={!form.className || !form.sectionName}
+              disabled={!form.className}
             >
               <option value="">Select Subject</option>
-              {subjects.map(sub => (
-                <option key={sub._id} value={sub.subjectName}>
-                  {sub.subjectName}
+              {subjects.map((subject, index) => (
+                <option key={index} value={subject}>
+                  {subject}
                 </option>
               ))}
             </select>
@@ -290,7 +276,7 @@ function Assignments() {
               className="mt-1 p-2 border rounded w-full"
             />
           </div>
-          
+
           <div>
             <label htmlFor="marks" className="block text-sm font-medium text-gray-700">Upload Assignment (Optional)</label>
             <input
@@ -344,58 +330,82 @@ function Assignments() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {getFilteredAssignments().map((assignment, index) => (
-              <tr key={assignment._id}>
-                <td className="px-4 py-2 border-b border-gray-300">{index + 1}</td>
-                <td className="px-4 py-2 border-b border-gray-300">{assignment.assignmentTitle}</td>
-                <td className="px-4 py-2 border-b border-gray-300">{assignment.className} ({assignment.sectionName})</td>
-                <td className="px-4 py-2 border-b border-gray-300">{assignment.subjectName}</td>
-                <td className="px-4 py-2 border-b border-gray-300">{assignment.marks}</td>
-                <td className="px-4 py-2 border-b border-gray-300">{new Date(assignment.dueDate).toLocaleDateString()}</td>
-                <td className="px-4 py-2 border-b border-gray-300">
-                  <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-4">
-                    <button
-                      className="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-400"
-                      onClick={() => handleEdit(assignment)}
-                    >
-                      <i className="fas fa-edit mr-1"></i>Edit
-                    </button>
-                    <button
-                      className="bg-red-600 text-white px-2 py-1 rounded hover:bg-red-500"
-                      onClick={() => handleDelete(assignment._id)}
-                    >
-                      <i className="fas fa-trash mr-1"></i>Delete
-                    </button>
-                  </div>
-                </td>
+            {form.className && form.subjectName ? (
+              getFilteredAssignments().length > 0 ? (
+                getFilteredAssignments().map((assignment, index) => (
+                  <tr key={assignment._id}>
+                    <td className="px-4 py-2 border-b border-gray-300">{index + 1}</td>
+                    <td className="px-4 py-2 border-b border-gray-300">{assignment.assignmentTitle}</td>
+                    <td className="px-4 py-2 border-b border-gray-300">{assignment.className} ({assignment.sectionName})</td>
+                    <td className="px-4 py-2 border-b border-gray-300">{assignment.subjectName}</td>
+                    <td className="px-4 py-2 border-b border-gray-300">{assignment.marks}</td>
+                    <td className="px-4 py-2 border-b border-gray-300">{new Date(assignment.dueDate).toLocaleDateString()}</td>
+                    <td className="px-4 py-2 border-b border-gray-300">
+                      <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-4">
+                        <button
+                          className="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-400"
+                          onClick={() => handleEdit(assignment)}
+                        >
+                          <i className="fas fa-edit mr-1"></i>Edit
+                        </button>
+                        <button
+                          className="bg-red-600 text-white px-2 py-1 rounded hover:bg-red-500"
+                          onClick={() => handleDelete(assignment._id)}
+                        >
+                          <i className="fas fa-trash mr-1"></i>Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="6" className="px-4 py-2 text-center">No assignments found.</td>
+                </tr>
+              )
+            ) : (
+              <tr>
+                <td colSpan="6" className="px-4 py-2 text-center">Please select a class and subject to see the assignments.</td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
-        </div>
-
-        {/* Mobile View */}
-        <div className="grid grid-cols-1 md:hidden gap-4">
-          {getFilteredAssignments().map(assignment => (
-            <div key={assignment._id} className="border p-4 rounded-md shadow">
-              <h3 className="text-lg font-semibold"><i className="fas fa-bookmark text-indigo-500 mr-2"></i>
-              {assignment.assignmentTitle}</h3>
-              <p><i className="fas fa-chalkboard-teacher text-teal-500 mr-2"></i>{assignment.className} ({assignment.sectionName})</p>
-              <p><i className="fas fa-book text-green-500 mr-2"></i>{assignment.subjectName}</p>
-              <p><i className="fas fa-star text-yellow-500 mr-2"></i>Marks : {assignment.marks}</p>
-              <p><i className="fas fa-calendar-check text-red-500 mr-2"></i>{new Date(assignment.dueDate).toLocaleDateString()}</p>
-              <div className="flex justify-end mt-2 gap-4">
-              <button onClick={() => handleEdit(assignment)} className="text-yellow-500 hover:underline">
-                <i className="fas fa-edit mr-1"></i>Edit
-              </button>
-              <button onClick={() => handleDelete(assignment._id)} className="text-red-500 hover:underline">
-                <i className="fas fa-trash mr-1"></i>Delete
-              </button>
-            </div>
-            </div>
-          ))}
-        </div>
       </div>
+
+      {/* Mobile View */}
+      <div className="grid grid-cols-1 md:hidden gap-4">
+        {form.className && form.subjectName ? (
+          getFilteredAssignments().length > 0 ? (
+            getFilteredAssignments().map(assignment => (
+              <div key={assignment._id} className="border p-4 rounded-md shadow">
+                <h3 className="text-lg font-semibold"><i className="fas fa-bookmark text-indigo-500 mr-2"></i>
+                  {assignment.assignmentTitle}</h3>
+                <p><i className="fas fa-chalkboard-teacher text-teal-500 mr-2"></i>{assignment.className} ({assignment.sectionName})</p>
+                <p><i className="fas fa-book text-green-500 mr-2"></i>{assignment.subjectName}</p>
+                <p><i className="fas fa-star text-yellow-500 mr-2"></i>Marks : {assignment.marks}</p>
+                <p><i className="fas fa-calendar-check text-red-500 mr-2"></i>{new Date(assignment.dueDate).toLocaleDateString()}</p>
+                <div className="flex justify-end mt-2 gap-4">
+                  <button onClick={() => handleEdit(assignment)} className="text-yellow-500 hover:underline">
+                    <i className="fas fa-edit mr-1"></i>Edit
+                  </button>
+                  <button onClick={() => handleDelete(assignment._id)} className="text-red-500 hover:underline">
+                    <i className="fas fa-trash mr-1"></i>Delete
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="border rounded p-4 bg-white shadow text-center">
+              <p>No assignments found.</p>
+            </div>
+          )
+        ) : (
+          <div className="border rounded p-4 bg-white shadow text-center">
+            <p>Please select a class and subject to see the assignments.</p>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 

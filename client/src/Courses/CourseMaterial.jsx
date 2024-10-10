@@ -22,10 +22,10 @@ function CourseMaterial() {
       try {
         const response = await axios.get(`http://localhost:7000/api/teachers/getTeacherById/66f12d8a8f27884ade9f1349`);
         setTeacher(response.data);
-        
+
         // Destructure the teacher's first and last name from the response
         const { firstName, lastName } = response.data;
-    
+
         // Fetch classes using the teacher's full name
         fetchClasses(`${firstName} ${lastName}`);
       } catch (err) {
@@ -168,6 +168,7 @@ function CourseMaterial() {
     return courseMaterials.filter(material => {
       return (
         (form.className === '' || material.className === form.className) &&
+        (form.sectionName === '' || material.sectionName === form.sectionName) &&
         (form.subjectName === '' || material.subjectName === form.subjectName)
       );
     });
@@ -209,25 +210,25 @@ function CourseMaterial() {
             </select>
           </div>
 
-<div>
-  <label htmlFor="subjectName" className="block text-sm font-medium text-gray-700">Subject</label>
-  <select
-    id="subjectName"
-    name="subjectName"
-    value={form.subjectName}
-    onChange={handleInputChange}
-    required
-    className="mt-1 p-2 border rounded w-full"
-    disabled={!form.className}
-  >
-    <option value="">Select Subject</option>
-    {subjects.map((subject, index) => ( // Map over the subjects array
-      <option key={index} value={subject}>
-        {subject}
-      </option>
-    ))}
-  </select>
-</div>
+          <div>
+            <label htmlFor="subjectName" className="block text-sm font-medium text-gray-700">Subject</label>
+            <select
+              id="subjectName"
+              name="subjectName"
+              value={form.subjectName}
+              onChange={handleInputChange}
+              required
+              className="mt-1 p-2 border rounded w-full"
+              disabled={!form.className}
+            >
+              <option value="">Select Subject</option>
+              {subjects.map((subject, index) => ( // Map over the subjects array
+                <option key={index} value={subject}>
+                  {subject}
+                </option>
+              ))}
+            </select>
+          </div>
 
           <div>
             <label htmlFor="title" className="block text-sm font-medium text-gray-700">Title</label>
@@ -273,13 +274,13 @@ function CourseMaterial() {
           {isLoading ? 'Adding...' : editingId ? 'Update Course Material' : 'Add Course Material'}
         </button>
         {editingId && (
-        <button
-          onClick={clearForm}
-          className="bg-gray-600 text-white py-2 px-4 ml-4 rounded"
-        >
-          Cancel
-        </button>
-      )}
+          <button
+            onClick={clearForm}
+            className="bg-gray-600 text-white py-2 px-4 ml-4 rounded"
+          >
+            Cancel
+          </button>
+        )}
       </form>
 
       <h2 className="text-xl font-bold mb-4">Course Materials</h2>
@@ -297,60 +298,83 @@ function CourseMaterial() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {getFilteredCourseMaterials().map((material, index) => (
-              <tr key={material._id}>
-                <td className="px-4 py-2">{index + 1}</td>
-                <td className="px-4 py-2">{material.className} ({material.sectionName})</td>
-                <td className="px-4 py-2">{material.subjectName}</td>
-                <td className="px-4 py-2">{material.title}</td>
-                <td className="px-4 py-2">
-                  <a href={material.courseMaterialFile} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                    View File
-                  </a>
-                </td>
-                <td className="px-4 py-2">
-                  <div className="flex flex-row justify-center gap-4">
-                    <button
-                      onClick={() => handleEdit(material)}
-                      className="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-400 transition duration-200 "
-                    >
-                      <i className="fas fa-edit mr-1"></i>Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(material._id)}
-                      className="bg-red-600 text-white rounded px-2 py-1 hover:bg-red-500 transition duration-200 "
-                    >
-                      <i className="fas fa-trash mr-1"></i>Delete
-                    </button>
-                  </div>
-                </td>
+            {form.className && form.subjectName ? (
+              getFilteredCourseMaterials().length > 0 ? (
+                getFilteredCourseMaterials().map((material, index) => (
+                  <tr key={material._id}>
+                    <td className="px-4 py-2">{index + 1}</td>
+                    <td className="px-4 py-2">{material.className} ({material.sectionName})</td>
+                    <td className="px-4 py-2">{material.subjectName}</td>
+                    <td className="px-4 py-2">{material.title}</td>
+                    <td className="px-4 py-2">
+                      <a href={material.courseMaterialFile} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                        View File
+                      </a>
+                    </td>
+                    <td className="px-4 py-2">
+                      <div className="flex flex-row justify-center gap-4">
+                        <button
+                          onClick={() => handleEdit(material)}
+                          className="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-400 transition duration-200 "
+                        >
+                          <i className="fas fa-edit mr-1"></i>Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(material._id)}
+                          className="bg-red-600 text-white rounded px-2 py-1 hover:bg-red-500 transition duration-200 "
+                        >
+                          <i className="fas fa-trash mr-1"></i>Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="6" className="px-4 py-2 text-center">No course materials found.</td>
+                </tr>
+              )
+            ) : (
+              <tr>
+                <td colSpan="6" className="px-4 py-2 text-center">Please select a class and subject to see the materials.</td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
 
       {/* Responsive Cards for Mobile View */}
       <div className="grid grid-cols-1 md:hidden gap-4">
-        {getFilteredCourseMaterials().map((material) => (
-          <div key={material._id} className="border rounded p-4 bg-white shadow">
-            <h3 className="font-bold"><i className="fas fa-pen text-yellow-900 mr-2"></i>{material.title}</h3>
-            <p><i className="fas fa-chalkboard-teacher text-teal-500 mr-2"></i>{material.className} ({material.sectionName})</p>
-            <p><i className="fas fa-book text-green-500 mr-2"></i>
-              {material.subjectName}</p>
-            <div className="flex justify-between mt-2">
-              <a href={material.courseMaterialFile} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                <i className="fas fa-eye mr-1"></i>View File
-              </a>
-              <button onClick={() => handleEdit(material)} className="text-yellow-500 hover:underline">
-                <i className="fas fa-edit mr-1"></i>Edit
-              </button>
-              <button onClick={() => handleDelete(material._id)} className="text-red-500 hover:underline">
-                <i className="fas fa-trash mr-1"></i>Delete
-              </button>
+        {form.className && form.subjectName ? (
+          getFilteredCourseMaterials().length > 0 ? (
+            getFilteredCourseMaterials().map((material) => (<div key={material._id} className="border rounded p-4 bg-white shadow">
+              <h3 className="font-bold"><i className="fas fa-pen text-yellow-900 mr-2"></i>{material.title}</h3>
+              <p><i className="fas fa-chalkboard-teacher text-teal-500 mr-2"></i>{material.className} ({material.sectionName})</p>
+              <p><i className="fas fa-book text-green-500 mr-2"></i>
+                {material.subjectName}</p>
+              <div className="flex justify-between mt-2">
+                <a href={material.courseMaterialFile} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                  <i className="fas fa-eye mr-1"></i>View File
+                </a>
+                <button onClick={() => handleEdit(material)} className="text-yellow-500 hover:underline">
+                  <i className="fas fa-edit mr-1"></i>Edit
+                </button>
+                <button onClick={() => handleDelete(material._id)} className="text-red-500 hover:underline">
+                  <i className="fas fa-trash mr-1"></i>Delete
+                </button>
+              </div>
             </div>
+            ))
+          ) : (
+            <div className="border rounded p-4 bg-white shadow text-center">
+              <p>No course materials found.</p>
+            </div>
+          )
+        ) : (
+          <div className="border rounded p-4 bg-white shadow text-center">
+            <p>Please select a class and subject to see the materials.</p>
           </div>
-        ))}
+        )}
       </div>
     </div>
   );
