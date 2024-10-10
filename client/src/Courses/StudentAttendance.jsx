@@ -19,6 +19,7 @@ const TeacherAttendance = () => {
         if (teacherData.classIncharge) {
           // Example: "10th (Rose)" => Class: "10th", Section: "Rose"
           const [className, sectionName] = teacherData.classIncharge.split(' (');
+
           setAssignedClass(className);
           setAssignedSection(sectionName.replace(')', ''));
           setTeacherClassIncharge(teacherData.classIncharge);
@@ -41,7 +42,7 @@ const TeacherAttendance = () => {
         try {
           const response = await axios.get('http://localhost:7000/api/students/getStudents');
           const filteredStudents = response.data.filter(student =>
-            student.status === "active" & student.class === assignedClass && student.section === assignedSection
+            student.status === "active" && student.class === assignedClass && student.section === assignedSection
           );
           setStudents(filteredStudents);
           setAttendance(
@@ -80,15 +81,17 @@ const TeacherAttendance = () => {
 
     try {
       const response = await axios.post('http://localhost:7000/api/attendance/createAttendance', attendanceData);
-      alert(`Attendance Submitted for Class: ${assignedClass} (${assignedSection})`);
+      setMessage(`Attendance has been successfully submitted for Class: ${assignedClass} (${assignedSection}). Thank you for your diligence in maintaining accurate records.`);
+      // Reset attendance if needed
+      setAttendance([]); // Optionally clear the attendance array
     } catch (error) {
       console.error('Error submitting attendance:', error);
-      setMessage('Error submitting attendance.');
+      setMessage('Oops! There was a problem with the attendance submission. Please attempt again shortly.');
     }
   };
 
   if (message) {
-    return <div className="text-red-500 text-center mt-8">{message}</div>;
+    return <div className="text-green-600 text-center mt-8">{message}</div>;
   }
 
   return (
