@@ -18,13 +18,19 @@ const Result = () => {
   const [editingResultId, setEditingResultId] = useState('');
   const [results, setResults] = useState([]); // To hold fetched results
   const [teacher, setTeacher] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const fetchTeacher = async () => {
       try {
         const response = await axios.get(`http://localhost:7000/api/teachers/getTeacherById/66f12d8a8f27884ade9f1349`);
         setTeacher(response.data);
-        fetchClasses(response.data);
+
+        // Destructure the teacher's first and last name from the response
+        const { firstName, lastName } = response.data;
+
+        // Fetch classes using the teacher's full name
+        fetchClasses(`${firstName} ${lastName}`);
       } catch (err) {
         console.error('Error fetching teacher data:', err);
       }
@@ -33,44 +39,52 @@ const Result = () => {
     fetchTeacher();
   }, []);
 
-  const fetchClasses = async (teacherData) => {
+  // Fetch classes based on teacher's name
+  const fetchClasses = async (teacherName) => {
     try {
-      const response = await axios.get('http://localhost:7000/api/classes/getClasses');
-      const teacherClasses = teacherData?.classYouTeach[0]?.split(',') || [];
-      const filteredClasses = response.data.filter(cls =>
-        teacherClasses.includes(cls.className)
-      );
-      setClasses(filteredClasses);
+      const response = await axios.get(`http://localhost:7000/api/timetable/getTeacherClasses/${teacherName}`); // Update API endpoint
+      setClasses(response.data); // Assuming response.data is an array of classes
     } catch (error) {
       console.error('Error fetching classes:', error);
     }
   };
 
+  const fetchSubjects = async (className) => {
+    if (!teacher) return; // Return if teacher data isn't available yet
+    try {
+      const { firstName, lastName } = teacher;
+      const response = await axios.get(`http://localhost:7000/api/timetable/getSubjectsByTeacherAndClass/${firstName}%20${lastName}/${className}`);
+      console.log(response.data);
+      // Check if the response is an array before setting state
+      if (Array.isArray(response.data.subjects)) {
+        setSubjects(response.data.subjects); // Assuming the API returns the subjects correctly
+      } else {
+        setSubjects([]); // Reset to an empty array if the response is not an array
+        console.error('Expected an array but got:', response.data); // Log the unexpected response
+      }
+    } catch (error) {
+      console.error('Error fetching subjects:', error);
+    }
+  };
+
   useEffect(() => {
     if (selectedClass) {
-      axios.get(`https://api.gurukulerp.in/api/sections/${selectedClass}/getSectionsByClassName`)
+      axios.get(`http://localhost:7000/api/sections/${selectedClass}/getSectionsByClassName`)
         .then(response => setSections(response.data))
         .catch(error => console.error('Error fetching sections:', error));
 
-      axios.get(`https://api.gurukulerp.in/api/exams/getExamByClass/${selectedClass}`)
+      axios.get(`http://localhost:7000/api/exams/getExamByClass/${selectedClass}`)
         .then(response => setExams(response.data))
         .catch(error => console.error('Error fetching exams:', error));
 
-      axios.get(`https://api.gurukulerp.in/api/subjects/${selectedClass}/getSubjectsByClassName`)
-        .then(response => {
-          const teacherSubjects = teacher?.subjectYouTeach[0]?.split(',') || [];
-          const filteredSubjects = response.data.filter(sub =>
-            teacherSubjects.includes(sub.subjectName)
-          );
-          setSubjects(filteredSubjects);
-        })
-        .catch(error => console.error('Error fetching subjects:', error));
+      // Fetch subjects based on the selected class
+      fetchSubjects(selectedClass);
     }
   }, [selectedClass, teacher]);
 
   useEffect(() => {
     if (selectedClass && selectedSection) {
-      axios.get('https://api.gurukulerp.in/api/students/getStudents')
+      axios.get('http://localhost:7000/api/students/getStudents')
         .then(response => {
           const filteredStudents = response.data.filter(student =>
             student.class === selectedClass && student.section === selectedSection
@@ -132,6 +146,8 @@ const Result = () => {
     } catch (error) {
       console.error('Error saving/updating exam result:', error);
       alert("Error saving/updating exam result");
+    } finally {
+      setIsLoading(false); // Stop loading
     }
   };
 
@@ -189,6 +205,18 @@ const Result = () => {
     fetchResults(); // Fetch results when component mounts
   }, []);
 
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+
+    // Check if the selected field is className
+    if (name === 'className') {
+      const [selectedClassName, selectedSectionName] = value.split('|'); // Split based on a unique separator
+
+      setSelectedClass(selectedClassName);
+      setSelectedSection(selectedSectionName);
+    }
+  };
+
   return (
     <div className="max-w-full mx-auto p-4 bg-white shadow-md rounded-lg">
       <h2 className="text-2xl font-semibold mb-4">Exam Results</h2>
@@ -197,33 +225,23 @@ const Result = () => {
         <div className="flex-1">
           <label className="block text-gray-700 text-sm font-bold mb-2">Class :</label>
           <select
-            value={selectedClass}
-            onChange={(e) => setSelectedClass(e.target.value)}
+            id='className'
+            name='className'
+            value={`${selectedClass}|${selectedSection}`}
+            onChange={handleInputChange}
             className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Select Class</option>
-            {classes.map((cls) => (
-              <option key={cls._id} value={cls.className}>{cls.className}</option>
+            {classes.map(cls => (
+              <option key={cls._id} value={`${cls.className}|${cls.sectionName}`}>
+                {cls.className} ({cls.sectionName})
+              </option>
             ))}
           </select>
         </div>
 
         {selectedClass && (
           <>
-            <div className="flex-1">
-              <label className="block text-gray-700 text-sm font-bold mb-2">Section :</label>
-              <select
-                value={selectedSection}
-                onChange={(e) => setSelectedSection(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Select Section</option>
-                {sections.map((section) => (
-                  <option key={section._id} value={section.sectionName}>{section.sectionName}</option>
-                ))}
-              </select>
-            </div>
-
             <div className="flex-1">
               <label className="block text-gray-700 text-sm font-bold mb-2">Exam Name</label>
               <select
@@ -246,7 +264,7 @@ const Result = () => {
         <label className="block text-gray-700 text-sm font-bold mb-2">Subjects:</label>
         <Select
           isMulti
-          options={subjects.map(subject => ({ value: subject.subjectName, label: subject.subjectName }))}
+          options={subjects.map(subject => ({ value: subject, label: subject }))}
           value={selectedSubjects}
           onChange={setSelectedSubjects}
           className="w-full"
@@ -299,7 +317,7 @@ const Result = () => {
               </tr>
             </thead>
             <tbody>
-              {students.map((student , index) => (
+              {students.map((student, index) => (
                 <tr key={student._id}>
                   <td className="border px-6 py-4 text-center">{index + 1}</td>
                   <td className="border px-6 py-4 text-center">{student.rollNo}</td>
@@ -321,16 +339,25 @@ const Result = () => {
         </div>
       </div>
 
-      <div className="mt-8 flex justify-end">
+      <div>
         <button
-          className="bg-blue-500 text-white px-6 py-2 rounded-lg shadow hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
           onClick={handleSubmit}
+          className={`mt-4 ${isLoading ? 'bg-gray-400' : 'bg-blue-800 hover:bg-blue-600'} text-white p-2 md:px-6 rounded`}
+          disabled={isLoading}
         >
-          {isEditing ? 'Update Result' : 'Save Result'}
+          {isLoading ? 'Adding...' : isEditing ? 'Update Result' : 'Save Result'}
         </button>
+        {isEditing && (
+          <button
+            onClick={clearForm}
+            className="bg-gray-600 text-white py-2 px-4 ml-4 rounded"
+          >
+            Cancel
+          </button>
+        )}
       </div>
-    {/* Results Table */}
-    <h3 className="text-xl font-semibold mt-6 mb-2">All Exam Results</h3>
+      {/* Results Table */}
+      <h3 className="text-xl font-semibold mt-6 mb-2">All Exam Results</h3>
       {results.length > 0 ? (
         <table className="min-w-full border border-gray-300 text-center">
           <thead className='bg-gray-200'>
@@ -339,12 +366,12 @@ const Result = () => {
               <th className="border border-gray-300 px-4 py-2">Exam Name</th>
               <th className="border border-gray-300 px-4 py-2">Class</th>
               <th className="border border-gray-300 px-4 py-2">Section</th>
-              <th className="border border-gray-300 px-4 py-2">Subjects</th> 
+              <th className="border border-gray-300 px-4 py-2">Subjects</th>
               <th className="border border-gray-300 px-4 py-2">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {results.map((result , index) => (
+            {results.map((result, index) => (
               <tr key={result._id} className="border-b hover:bg-gray-50">
                 <td className="border border-gray-300 px-4 py-2">{index + 1}</td>
                 <td className="border border-gray-300 px-4 py-2">{result.examName}</td>

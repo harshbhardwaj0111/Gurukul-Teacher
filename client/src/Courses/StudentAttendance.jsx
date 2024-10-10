@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const TeacherAttendance = () => {
+const StudentAttendance = () => {
   const [teacherClassIncharge, setTeacherClassIncharge] = useState('');
   const [assignedClass, setAssignedClass] = useState('');
   const [assignedSection, setAssignedSection] = useState('');
@@ -161,4 +161,4 @@ const TeacherAttendance = () => {
   );
 };
 
-export default TeacherAttendance;
+export default StudentAttendance;
