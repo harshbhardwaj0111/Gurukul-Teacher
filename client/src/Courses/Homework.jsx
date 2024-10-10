@@ -11,9 +11,9 @@ function Homework() {
   });
   const [editingId, setEditingId] = useState(null);
   const [classes, setClasses] = useState([]);
-  const [sections, setSections] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [teacher, setTeacher] = useState(null);
+  const [isLoading, setIsLoading] = useState(false); 
 
   // Fetch teacher's class and subject details
   useEffect(() => {
@@ -21,7 +21,12 @@ function Homework() {
       try {
         const response = await axios.get(`http://localhost:7000/api/teachers/getTeacherById/66f12d8a8f27884ade9f1349`);
         setTeacher(response.data);
-        fetchClasses(response.data);
+
+        // Destructure the teacher's first and last name from the response
+        const { firstName, lastName } = response.data;
+
+        // Fetch classes using the teacher's full name
+        fetchClasses(`${firstName} ${lastName}`);
       } catch (err) {
         console.error('Error fetching teacher data:', err);
       }
@@ -34,53 +39,36 @@ function Homework() {
     fetchHomework();
   }, []);
 
-  // Fetch teacher's assigned classes
-  const fetchClasses = async (teacherData) => {
+  // Fetch classes based on teacher's name
+  const fetchClasses = async (teacherName) => {
     try {
-      const response = await axios.get('http://localhost:7000/api/classes/getClasses');
-      const teacherClasses = teacherData?.classYouTeach[0]?.split(',') || [];
-      const filteredClasses = response.data.filter(cls =>
-        teacherClasses.includes(cls.className)
-      );
-      setClasses(filteredClasses);
+      const response = await axios.get(`http://localhost:7000/api/timetable/getTeacherClasses/${teacherName}`); // Update API endpoint
+      setClasses(response.data); // Assuming response.data is an array of classes
     } catch (error) {
       console.error('Error fetching classes:', error);
     }
   };
 
-  // Fetch sections based on the selected class
   useEffect(() => {
     if (form.className) {
-      fetchSections(form.className);
+      fetchSubjects(form.className);
     }
   }, [form.className]);
 
-  // Fetch subjects based on the selected class and section
-  useEffect(() => {
-    if (form.className && form.sectionName) {
-      fetchSubjects(form.className);
-    }
-  }, [form.className, form.sectionName]);
-
-  // Fetch the sections for the selected class
-  const fetchSections = async (className) => {
-    try {
-      const response = await axios.get(`http://localhost:7000/api/sections/${className}/getSectionsByClassName`);
-      setSections(response.data);
-    } catch (error) {
-      console.error('Error fetching sections:', error);
-    }
-  };
-
   // Fetch subjects the teacher teaches
   const fetchSubjects = async (className) => {
+    if (!teacher) return; // Return if teacher data isn't available yet
     try {
-      const response = await axios.get(`http://localhost:7000/api/subjects/${className}/getSubjectsByClassName`);
-      const teacherSubjects = teacher?.subjectYouTeach[0]?.split(',') || [];
-      const filteredSubjects = response.data.filter(sub =>
-        teacherSubjects.includes(sub.subjectName)
-      );
-      setSubjects(filteredSubjects);
+      const { firstName, lastName } = teacher;
+      const response = await axios.get(`http://localhost:7000/api/timetable/getSubjectsByTeacherAndClass/${firstName}%20${lastName}/${className}`);
+      console.log(response.data);
+      // Check if the response is an array before setting state
+      if (Array.isArray(response.data.subjects)) {
+        setSubjects(response.data.subjects); // Assuming the API returns the subjects correctly
+      } else {
+        setSubjects([]); // Reset to an empty array if the response is not an array
+        console.error('Expected an array but got:', response.data); // Log the unexpected response
+      }
     } catch (error) {
       console.error('Error fetching subjects:', error);
     }
@@ -99,7 +87,23 @@ function Homework() {
   // Handle form changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setForm({ ...form, [name]: value });
+
+    // Check if the selected field is className
+    if (name === 'className') {
+      const [selectedClassName, selectedSectionName] = value.split('|'); // Split based on a unique separator
+
+      // Update both className and sectionName
+      setForm({
+        ...form,
+        className: selectedClassName,
+        sectionName: selectedSectionName || '', // Default to an empty string if undefined
+      });
+    } else {
+      setForm({
+        ...form,
+        [name]: value,
+      });
+    }
   };
 
   // Handle form submit for creating/updating homework
@@ -128,6 +132,8 @@ function Homework() {
       fetchHomework();
     } catch (error) {
       console.error('Error saving homework:', error);
+    } finally {
+      setIsLoading(false); // Stop loading
     }
   };
 
@@ -157,14 +163,9 @@ function Homework() {
 
   // Filter homework by teacher's class and subject
   const getFilteredHomework = () => {
-    if (!teacher) return homeworkData;
-
-    const teacherClasses = teacher.classYouTeach[0]?.split(',') || [];
-    const teacherSubjects = teacher.subjectYouTeach[0]?.split(',') || [];
-
     return homeworkData.filter(homework =>
-      teacherClasses.includes(homework.className) &&
-      teacherSubjects.includes(Object.keys(homework.homework)[0]) // Get the subject name
+      classes.some(cls => cls.className === homework.className) &&
+      subjects.includes(Object.keys(homework.homework)[0])
     );
   };
 
@@ -181,37 +182,21 @@ function Homework() {
       {/* Homework Form */}
       <form onSubmit={handleSubmit} className="bg-white p-4 shadow-md rounded-md">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="className" className="block">Class</label>
+        <div>
+            <label htmlFor="className" className="block text-sm font-medium text-gray-700">Class</label>
             <select
               id="className"
               name="className"
-              value={form.className}
+              value={`${form.className}|${form.sectionName}`}
               onChange={handleInputChange}
               required
               className="mt-1 p-2 border rounded w-full"
             >
               <option value="">Select Class</option>
               {classes.map(cls => (
-                <option key={cls._id} value={cls.className}>{cls.className}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="sectionName" className="block">Section</label>
-            <select
-              id="sectionName"
-              name="sectionName"
-              value={form.sectionName}
-              onChange={handleInputChange}
-              required
-              disabled={!form.className}
-              className="mt-1 p-2 border rounded w-full"
-            >
-              <option value="">Select Section</option>
-              {sections.map(sec => (
-                <option key={sec._id} value={sec.sectionName}>{sec.sectionName}</option>
+                <option key={cls._id} value={`${cls.className}|${cls.sectionName}`}>
+                  {cls.className} ({cls.sectionName})
+                </option>
               ))}
             </select>
           </div>
@@ -224,12 +209,14 @@ function Homework() {
               value={form.subject}
               onChange={handleInputChange}
               required
-              disabled={!form.className || !form.sectionName}
+              disabled={!form.className}
               className="mt-1 p-2 border rounded w-full"
             >
               <option value="">Select Subject</option>
-              {subjects.map(sub => (
-                <option key={sub._id} value={sub.subjectName}>{sub.subjectName}</option>
+              {subjects.map((subject,index) => (
+                <option key={index} value={subject}>
+                  {subject}
+                </option>
               ))}
             </select>
           </div>
@@ -248,8 +235,12 @@ function Homework() {
         </div>
 
         <div className="mt-4">
-          <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">
-            {editingId ? 'Update Homework' : 'Add Homework'}
+          <button
+          type="submit"
+          className={`mt-4 ${isLoading ? 'bg-gray-400' : 'bg-blue-800 hover:bg-blue-600'} text-white p-2 md:px-6 rounded`}
+          disabled={isLoading}
+          >
+            {isLoading ? 'Adding...' : editingId ? 'Update Homework' : 'Add Homework'}
           </button>
           {editingId && (
             <button
